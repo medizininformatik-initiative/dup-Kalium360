@@ -1,0 +1,19 @@
+services:
+  start_kalium:
+    build: .
+    container_name: kalium360
+    environment:
+      TZ: Europe/Berlin
+      KALIUM_DATA_DIR: /data
+      KALIUM_OUTPUT_DIR: /output
+      KALIUM_WORKING_DIR: /work
+    volumes:
+      # config files
+      - ./config.R:/app/config.R:ro
+      - ./unit_conversion.csv:/app/unit_conversion.csv:ro
+      # input data folder
+      - ${KALIUM_DATA_PATH}:/data:ro
+      # output folder
+      - ${KALIUM_OUTPUT_PATH}:/output
+      # temp DuckDB working folder 
+      - ${KALIUM_WORKING_PATH}:/work

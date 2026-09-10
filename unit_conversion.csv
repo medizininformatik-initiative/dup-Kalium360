@@ -1,0 +1,9 @@
+﻿label,source_unit,target_unit,factor
+kalium,mmol/L,mmol/L,1
+kalium,meq/L,mmol/L,1
+glucose,mg/dL,mg/dL,1
+glucose,mmol/L,mg/dL,18.02
+bicarbonat,mmol/L,mmol/L,1
+bicarbonat,meq/L,mmol/L,1
+crea,mg/dL,mg/dL,1
+crea,umol/L,mg/dL,0.0113
