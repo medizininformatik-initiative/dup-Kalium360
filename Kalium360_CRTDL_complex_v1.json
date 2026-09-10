@@ -1,0 +1,2368 @@
+{
+    "version": "http://json-schema.org/to-be-done/schema#",
+    "display": "",
+    "cohortDefinition": {
+        "version": "http://to_be_decided.com/draft-1/schema#",
+        "display": "Ausgewählte Merkmale",
+        "inclusionCriteria": [
+            [
+                {
+                    "termCodes": [
+                        {
+                            "code": "29349-8",
+                            "display": "Potassium [Moles/volume] in Serum or Plasma --post dialysis",
+                            "system": "http://loinc.org",
+                            "version": "2.80"
+                        }
+                    ],
+                    "context": {
+                        "code": "Laboruntersuchung",
+                        "display": "Laboruntersuchung",
+                        "system": "fdpg.mii.cds",
+                        "version": "1.0.0"
+                    },
+                    "timeRestriction": {
+                        "afterDate": "2019-01-01",
+                        "beforeDate": "2024-12-31"
+                    }
+                },
+                {
+                    "termCodes": [
+                        {
+                            "code": "51618-7",
+                            "display": "Potassium [Moles/volume] in Serum or Plasma --pre dialysis",
+                            "system": "http://loinc.org",
+                            "version": "2.80"
+                        }
+                    ],
+                    "context": {
+                        "code": "Laboruntersuchung",
+                        "display": "Laboruntersuchung",
+                        "system": "fdpg.mii.cds",
+                        "version": "1.0.0"
+                    },
+                    "timeRestriction": {
+                        "afterDate": "2019-01-01",
+                        "beforeDate": "2024-12-31"
+                    }
+                },
+                {
+                    "termCodes": [
+                        {
+                            "code": "12813-2",
+                            "display": "Potassium [Moles/volume] in Serum or Plasma --3rd specimen",
+                            "system": "http://loinc.org",
+                            "version": "2.80"
+                        }
+                    ],
+                    "context": {
+                        "code": "Laboruntersuchung",
+                        "display": "Laboruntersuchung",
+                        "system": "fdpg.mii.cds",
+                        "version": "1.0.0"
+                    },
+                    "timeRestriction": {
+                        "afterDate": "2019-01-01",
+                        "beforeDate": "2024-12-31"
+                    }
+                },
+                {
+                    "termCodes": [
+                        {
+                            "code": "41656-0",
+                            "display": "Potassium [Moles/volume] in Mixed venous blood",
+                            "system": "http://loinc.org",
+                            "version": "2.80"
+                        }
+                    ],
+                    "context": {
+                        "code": "Laboruntersuchung",
+                        "display": "Laboruntersuchung",
+                        "system": "fdpg.mii.cds",
+                        "version": "1.0.0"
+                    },
+                    "timeRestriction": {
+                        "afterDate": "2019-01-01",
+                        "beforeDate": "2024-12-31"
+                    }
+                },
+                {
+                    "termCodes": [
+                        {
+                            "code": "77142-8",
+                            "display": "Potassium [Moles/volume] in Serum, Plasma or Blood",
+                            "system": "http://loinc.org",
+                            "version": "2.80"
+                        }
+                    ],
+                    "context": {
+                        "code": "Laboruntersuchung",
+                        "display": "Laboruntersuchung",
+                        "system": "fdpg.mii.cds",
+                        "version": "1.0.0"
+                    },
+                    "timeRestriction": {
+                        "afterDate": "2019-01-01",
+                        "beforeDate": "2024-12-31"
+                    }
+                },
+                {
+                    "termCodes": [
+                        {
+                            "code": "2823-3",
+                            "display": "Potassium [Moles/volume] in Serum or Plasma",
+                            "system": "http://loinc.org",
+                            "version": "2.80"
+                        }
+                    ],
+                    "context": {
+                        "code": "Laboruntersuchung",
+                        "display": "Laboruntersuchung",
+                        "system": "fdpg.mii.cds",
+                        "version": "1.0.0"
+                    },
+                    "timeRestriction": {
+                        "afterDate": "2019-01-01",
+                        "beforeDate": "2024-12-31"
+                    }
+                },
+                {
+                    "termCodes": [
+                        {
+                            "code": "39790-1",
+                            "display": "Potassium [Moles/volume] in Capillary blood",
+                            "system": "http://loinc.org",
+                            "version": "2.80"
+                        }
+                    ],
+                    "context": {
+                        "code": "Laboruntersuchung",
+                        "display": "Laboruntersuchung",
+                        "system": "fdpg.mii.cds",
+                        "version": "1.0.0"
+                    },
+                    "timeRestriction": {
+                        "afterDate": "2019-01-01",
+                        "beforeDate": "2024-12-31"
+                    }
+                },
+                {
+                    "termCodes": [
+                        {
+                            "code": "32713-0",
+                            "display": "Potassium [Moles/volume] in Arterial blood",
+                            "system": "http://loinc.org",
+                            "version": "2.80"
+                        }
+                    ],
+                    "context": {
+                        "code": "Laboruntersuchung",
+                        "display": "Laboruntersuchung",
+                        "system": "fdpg.mii.cds",
+                        "version": "1.0.0"
+                    },
+                    "timeRestriction": {
+                        "afterDate": "2019-01-01",
+                        "beforeDate": "2024-12-31"
+                    }
+                },
+                {
+                    "termCodes": [
+                        {
+                            "code": "39789-3",
+                            "display": "Potassium [Moles/volume] in Venous blood",
+                            "system": "http://loinc.org",
+                            "version": "2.80"
+                        }
+                    ],
+                    "context": {
+                        "code": "Laboruntersuchung",
+                        "display": "Laboruntersuchung",
+                        "system": "fdpg.mii.cds",
+                        "version": "1.0.0"
+                    },
+                    "timeRestriction": {
+                        "afterDate": "2019-01-01",
+                        "beforeDate": "2024-12-31"
+                    }
+                },
+                {
+                    "termCodes": [
+                        {
+                            "code": "75940-7",
+                            "display": "Potassium [Mass/volume] in Blood",
+                            "system": "http://loinc.org",
+                            "version": "2.80"
+                        }
+                    ],
+                    "context": {
+                        "code": "Laboruntersuchung",
+                        "display": "Laboruntersuchung",
+                        "system": "fdpg.mii.cds",
+                        "version": "1.0.0"
+                    },
+                    "timeRestriction": {
+                        "afterDate": "2019-01-01",
+                        "beforeDate": "2024-12-31"
+                    }
+                },
+                {
+                    "termCodes": [
+                        {
+                            "code": "6298-4",
+                            "display": "Potassium [Moles/volume] in Blood",
+                            "system": "http://loinc.org",
+                            "version": "2.80"
+                        }
+                    ],
+                    "context": {
+                        "code": "Laboruntersuchung",
+                        "display": "Laboruntersuchung",
+                        "system": "fdpg.mii.cds",
+                        "version": "1.0.0"
+                    },
+                    "timeRestriction": {
+                        "afterDate": "2019-01-01",
+                        "beforeDate": "2024-12-31"
+                    }
+                },
+                {
+                    "termCodes": [
+                        {
+                            "code": "12812-4",
+                            "display": "Potassium [Moles/volume] in Serum or Plasma --2nd specimen",
+                            "system": "http://loinc.org",
+                            "version": "2.80"
+                        }
+                    ],
+                    "context": {
+                        "code": "Laboruntersuchung",
+                        "display": "Laboruntersuchung",
+                        "system": "fdpg.mii.cds",
+                        "version": "1.0.0"
+                    },
+                    "timeRestriction": {
+                        "afterDate": "2019-01-01",
+                        "beforeDate": "2024-12-31"
+                    }
+                }
+            ]
+        ]
+    },
+    "dataExtraction": {
+        "attributeGroups": [
+            {
+                "attributes": [
+                    {
+                        "attributeRef": "Patient.active",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Patient.gender",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Patient.birthDate",
+                        "mustHave": false
+                    }
+                ],
+                "id": "94536797-dc30-4a14-b7da-64d8105740a9",
+                "groupReference": "https://www.medizininformatik-initiative.de/fhir/core/modul-person/StructureDefinition/PatientPseudonymisiert",
+                "name": "Kalium Patienten"
+            },
+            {
+                "attributes": [
+                    {
+                        "attributeRef": "Condition.clinicalStatus",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Condition.verificationStatus",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Condition.code",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Condition.recordedDate",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Condition.encounter",
+                        "mustHave": false,
+                        "linkedGroups": [
+                            "a03afcbf-482d-4d62-9ca6-dcd7af1bf623"
+                        ]
+                    }
+                ],
+                "id": "db4f1a01-2bf0-42de-b213-b966a8101881",
+                "filter": [
+                    {
+                        "type": "token",
+                        "name": "code",
+                        "codes": [
+                            {
+                                "code": "N18",
+                                "display": "Chronische Nierenkrankheit",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "N17",
+                                "display": "Akutes Nierenversagen",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "E10",
+                                "display": "Diabetes mellitus, Typ 1",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "E11",
+                                "display": "Diabetes mellitus, Typ 2",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "E26.0",
+                                "display": "Primärer Hyperaldosteronismus",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "E27.1",
+                                "display": "Primäre Nebennierenrindeninsuffizienz",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "E87.3",
+                                "display": "Alkalose",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "E87.2",
+                                "display": "Azidose",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "E87.6",
+                                "display": "Hypokaliämie",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "E87.5",
+                                "display": "Hyperkaliämie",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "E83.4",
+                                "display": "Störungen des Magnesiumstoffwechsels",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "P74.3",
+                                "display": "Störungen des Kaliumgleichgewichtes beim Neugeborenen",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "C91",
+                                "display": "Lymphatische Leukämie",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "C92",
+                                "display": "Myeloische Leukämie",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "D47.3",
+                                "display": "Essentielle (hämorrhagische) Thrombozythämie",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "G72.3",
+                                "display": "Periodische Lähmung",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "A09",
+                                "display": "Sonstige und nicht näher bezeichnete Gastroenteritis und Kolitis infektiösen und nicht näher bezeichneten Ursprungs",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "R78.0",
+                                "display": "Nachweis von Alkohol im Blut",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "R79.0",
+                                "display": "Abnormer Mineral-Blutwert",
+                                "system": "http://fhir.de/CodeSystem/bfarm/icd-10-gm",
+                                "version": "2099"
+                            }
+                        ]
+                    }
+                ],
+                "groupReference": "https://www.medizininformatik-initiative.de/fhir/core/modul-diagnose/StructureDefinition/Diagnose",
+                "name": "Conditions"
+            },
+            {
+                "attributes": [
+                    {
+                        "attributeRef": "Procedure.status",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Procedure.extension:Dokumentationsdatum",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Procedure.code",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Procedure.performed[x]",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Procedure.encounter",
+                        "mustHave": false,
+                        "linkedGroups": [
+                            "a03afcbf-482d-4d62-9ca6-dcd7af1bf623"
+                        ]
+                    }
+                ],
+                "id": "b839959c-93b6-473a-973e-c010b382b5ce",
+                "filter": [
+                    {
+                        "type": "token",
+                        "name": "code",
+                        "codes": [
+                            {
+                                "code": "8-853",
+                                "display": "Hämofiltration",
+                                "system": "http://fhir.de/CodeSystem/bfarm/ops",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "8-854",
+                                "display": "Hämodialyse",
+                                "system": "http://fhir.de/CodeSystem/bfarm/ops",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "8-855",
+                                "display": "Hämodiafiltration",
+                                "system": "http://fhir.de/CodeSystem/bfarm/ops",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "8-857",
+                                "display": "Peritonealdialyse",
+                                "system": "http://fhir.de/CodeSystem/bfarm/ops",
+                                "version": "2099"
+                            },
+                             {
+                                "code": "265764009",
+                                "display": "Renal dialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "341939001",
+                                "display": "Extracorporeal hemofiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "302497006",
+                                "display": "Hemodialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233586004",
+                                "display": "Hemodiafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233581009",
+                                "display": "Hemofiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "182750009",
+                                "display": "Ultrafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "714749008",
+                                "display": "Continuous renal replacement therapy (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233578004",
+                                "display": "Continuous hemodialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233575001",
+                                "display": "Intermittent hemodialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233588003",
+                                "display": "Continuous hemodiafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233583007",
+                                "display": "Continuous hemofiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233579007",
+                                "display": "Continuous arteriovenous hemodialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233580005",
+                                "display": "Continuous venovenous hemodialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "708932005",
+                                "display": "Emergency hemodialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "427053002",
+                                "display": "Extracorporeal albumin hemodialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "57274006",
+                                "display": "Initial hemodialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233577009",
+                                "display": "Intermittent hemodialysis with continuous ultrafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233576000",
+                                "display": "Intermittent hemodialysis with sequential ultrafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "11932001",
+                                "display": "Stabilizing hemodialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "698074000",
+                                "display": "Sustained low-efficiency dialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233589006",
+                                "display": "Continuous arteriovenous hemodiafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233590002",
+                                "display": "Continuous venovenous hemodiafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "708933000",
+                                "display": "Emergency hemodiafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233587008",
+                                "display": "Intermittent hemodiafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "708930002",
+                                "display": "Maintenance hemodiafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233584001",
+                                "display": "Continuous arteriovenous hemofiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233585000",
+                                "display": "Continuous venovenous hemofiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "715743002",
+                                "display": "Emergency hemofiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233582002",
+                                "display": "Intermittent hemofiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "708934006",
+                                "display": "Maintenance hemofiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "date",
+                        "name": "date",
+                        "start": "2018-12-01",
+                        "end": "2025-01-31"
+                    }
+                ],
+                "groupReference": "https://www.medizininformatik-initiative.de/fhir/core/modul-prozedur/StructureDefinition/Procedure",
+                "name": "Prozeduren"
+            },
+            {
+                "attributes": [
+                    {
+                        "attributeRef": "MedicationAdministration.status",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "MedicationAdministration.effective[x]",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "MedicationAdministration.context",
+                        "mustHave": false,
+                        "linkedGroups": [
+                            "a03afcbf-482d-4d62-9ca6-dcd7af1bf623"
+                        ]
+                    },
+                    {
+                        "attributeRef": "MedicationAdministration.medication[x]",
+                        "mustHave": false,
+                        "linkedGroups": [
+                            "abc8e9e4-c5aa-4c23-9e53-a93a6d9e5789"
+                        ]
+                    }
+                ],
+                "id": "485cd999-050d-402b-828d-2e7e475b2f75",
+                "filter": [
+                    {
+                        "type": "token",
+                        "name": "medication.code",
+                        "codes": [
+                            {
+                                "code": "B05BB01",
+                                "display": "Elektrolyte",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "C07",
+                                "display": "BETA-ADRENOZEPTORANTAGONISTEN",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "C01AA",
+                                "display": "Digitalisglykoside",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "B05BC",
+                                "display": "Osmodiuretika",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "M03AB01",
+                                "display": "Suxamethonium",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "C09",
+                                "display": "MITTEL MIT WIRKUNG AUF DAS RENIN-ANGIOTENSIN-SYSTEM",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "M01A",
+                                "display": "NICHTSTEROIDALE ANTIPHLOGISTIKA UND ANTIRHEUMATIKA",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "M01B",
+                                "display": "ANTIPHLOGISTIKA/ANTIRHEUMATIKA IN KOMBINATION",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "B01AB",
+                                "display": "Heparingruppe",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "L04AD",
+                                "display": "Calcineurin-Inhibitoren",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "C03",
+                                "display": "DIURETIKA",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "J01EA01",
+                                "display": "Trimethoprim",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "P01CX01",
+                                "display": "Pentamidindiisetionat",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "B05XA01",
+                                "display": "Kaliumchlorid",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "B05AX",
+                                "display": "Andere Blutprodukte",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "A12BA",
+                                "display": "Kalium",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "J01CE01",
+                                "display": "Benzylpenicillin",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "A10A",
+                                "display": "INSULINE UND ANALOGA",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "R03A",
+                                "display": "INHALATIVE SYMPATHOMIMETIKA",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "B05BA11",
+                                "display": "Glucose",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "V03AE",
+                                "display": "Mittel zur Behandlung der Hyperkaliämie und Hyperphosphatämie",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "H02AA",
+                                "display": "Mineralocorticoide",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "A02AH",
+                                "display": "Antacida mit Natriumbicarbonat",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "B05XA19",
+                                "display": "Kalium L-malat",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "H02BX20",
+                                "display": "Kombinationen",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "H02BX21",
+                                "display": "Desoxycorton, Kombinationen",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "A06",
+                                "display": "MITTEL GEGEN OBSTIPATION",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "R03C",
+                                "display": "SYMPATHOMIMETIKA ZUR SYSTEMISCHEN ANWENDUNG",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "date",
+                        "name": "effective-time",
+                        "start": "2018-12-01",
+                        "end": "2025-01-31"
+                    }
+                ],
+                "groupReference": "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationAdministration",
+                "name": "Administration MedicationCode"
+            },
+            {
+                "attributes": [
+                    {
+                        "attributeRef": "Observation.identifier",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Observation.status",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Observation.category",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Observation.code",
+                        "mustHave": true
+                    },
+                    {
+                        "attributeRef": "Observation.effective[x]",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Observation.value[x]",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Observation.dataAbsentReason",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Observation.interpretation",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Observation.note",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Observation.method",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Observation.referenceRange",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Observation.issued",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Observation.component",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Observation.encounter",
+                        "mustHave": false,
+                        "linkedGroups": [
+                            "a03afcbf-482d-4d62-9ca6-dcd7af1bf623"
+                        ]
+                    },
+                    {
+                        "attributeRef": "Observation.specimen",
+                        "mustHave": false,
+                        "linkedGroups": [
+                            "1eb4bff1-2e51-4520-bc48-0f809d83bbf0"
+                        ]
+                    },
+                    {
+                        "attributeRef": "Observation.basedOn",
+                        "mustHave": false,
+                        "linkedGroups": [
+                            "c86b92ef-1494-4e53-b3b3-b9ee669afec4"
+                        ]
+                    }
+                ],
+                "id": "9130be06-cd0e-483b-951e-50acc100d696",
+                "filter": [
+                    {
+                        "type": "token",
+                        "name": "code",
+                        "codes": [
+                            {
+                                "code": "12812-4",
+                                "display": "Potassium [Moles/volume] in Serum or Plasma --2nd specimen",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "12813-2",
+                                "display": "Potassium [Moles/volume] in Serum or Plasma --3rd specimen",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "2823-3",
+                                "display": "Potassium [Moles/volume] in Serum or Plasma",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "29349-8",
+                                "display": "Potassium [Moles/volume] in Serum or Plasma --post dialysis",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "32713-0",
+                                "display": "Potassium [Moles/volume] in Arterial blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "39790-1",
+                                "display": "Potassium [Moles/volume] in Capillary blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "41656-0",
+                                "display": "Potassium [Moles/volume] in Mixed venous blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "51618-7",
+                                "display": "Potassium [Moles/volume] in Serum or Plasma --pre dialysis",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "6298-4",
+                                "display": "Potassium [Moles/volume] in Blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "75940-7",
+                                "display": "Potassium [Mass/volume] in Blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "77142-8",
+                                "display": "Potassium [Moles/volume] in Serum, Plasma or Blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "20392-7",
+                                "display": "Sample icteric [Presence] of Serum or Plasma Qualitative",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "20393-5",
+                                "display": "Sample hemolyzed [Presence] of Serum or Plasma Qualitative",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "20394-3",
+                                "display": "Sample lipemic [Presence] of Serum or Plasma Qualitative",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "20395-0",
+                                "display": "Sample integrity [Type] of Serum or Plasma",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "46424-8",
+                                "display": "Hemolysis interference index of Serum or Plasma",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "46425-5",
+                                "display": "Lipemic interference index of Serum or Plasma",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "46426-3",
+                                "display": "Icteric interference index of Serum or Plasma",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "101475-2",
+                                "display": "Creatinine [Moles/volume] in Venous blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "103616-9",
+                                "display": "Creatinine [Moles/volume] in Serum or Plasma by LC/MS/MS",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "14682-9",
+                                "display": "Creatinine [Moles/volume] in Serum or Plasma",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "21232-4",
+                                "display": "Creatinine [Mass/volume] in Arterial blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "2160-0",
+                                "display": "Creatinine [Mass/volume] in Serum or Plasma",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "38483-4",
+                                "display": "Creatinine [Mass/volume] in Blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "59826-8",
+                                "display": "Creatinine [Moles/volume] in Blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "77140-2",
+                                "display": "Creatinine [Moles/volume] in Serum, Plasma or Blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "102097-3",
+                                "display": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine, Cystatin C and Urea-based formula (CKiD)/1.73 sq M",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "48642-3",
+                                "display": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (MDRD)/1.73 sq M among non black population",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "48643-1",
+                                "display": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (MDRD)/1.73 sq M among black population",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "50044-7",
+                                "display": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (MDRD)/1.73 sq M among female population",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "50210-4",
+                                "display": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Cystatin C-based formula/1.73 sq M",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "50384-7",
+                                "display": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (Schwartz)/1.73 sq M",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "62238-1",
+                                "display": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (CKD-EPI)/1.73 sq M",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "69405-9",
+                                "display": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by based on 1.73 sq M",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "70969-1",
+                                "display": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (MDRD)/1.73 sq M among male population",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "77147-7",
+                                "display": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (MDRD)/1.73 sq M",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "78006-4",
+                                "display": "Isotopic Glomerular filtration rate/1.73 sq M [Volume Rate/Area] in Urine and Serum or Plasma",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "88293-6",
+                                "display": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (CKD-EPI)/1.73 sq M among black population",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "88294-4",
+                                "display": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (CKD-EPI)/1.73 sq M among non black population",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "94677-2",
+                                "display": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine and Cystatin C-based formula (CKD-EPI)/1.73 sq M",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "96591-3",
+                                "display": "Glomerular filtration rate [Volume Rate/Area] in DBS by based on 1.73 sq M among black population",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "96592-1",
+                                "display": "Glomerular filtration rate [Volume Rate/Area] in DBS by based on 1.73 sq M among non black population",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "98979-8",
+                                "display": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine-based formula (CKD-EPI 2021)/1.73 sq M",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "98980-6",
+                                "display": "Glomerular filtration rate [Volume Rate/Area] in Serum, Plasma or Blood by Creatinine and Cystatin C-based formula (CKD-EPI 2021)/1.73 sq M",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "14151-5",
+                                "display": "Bicarbonate [Moles/volume] in Cord blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "14627-4",
+                                "display": "Bicarbonate [Moles/volume] in Venous blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "19229-4",
+                                "display": "Bicarbonate [Moles/volume] in Mixed venous blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "19230-2",
+                                "display": "Bicarbonate [Moles/volume] standard in Arterial blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "19231-0",
+                                "display": "Bicarbonate [Moles/volume] standard in Capillary blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "19232-8",
+                                "display": "Bicarbonate [Moles/volume] standard in Venous blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "19233-6",
+                                "display": "Bicarbonate [Moles/volume] standard in Mixed venous blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "1959-6",
+                                "display": "Bicarbonate [Moles/volume] in Blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "1960-4",
+                                "display": "Bicarbonate [Moles/volume] in Arterial blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "1961-2",
+                                "display": "Bicarbonate [Moles/volume] in Capillary blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "1963-8",
+                                "display": "Bicarbonate [Moles/volume] in Serum or Plasma",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "28640-1",
+                                "display": "Bicarbonate [Moles/volume] in Arterial cord blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "28641-9",
+                                "display": "Bicarbonate [Moles/volume] in Venous cord blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "39459-3",
+                                "display": "Bicarbonate [Moles/volume] standard in Venous cord blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "39460-1",
+                                "display": "Bicarbonate [Moles/volume] standard in Arterial cord blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "48631-6",
+                                "display": "Bicarbonate [Moles/volume] in Serum --post dialysis",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "54359-5",
+                                "display": "Bicarbonate [Moles/volume] in Plasma --post dialysis",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "69964-5",
+                                "display": "Bicarbonate [Moles/volume] standard in Plasma",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "97543-3",
+                                "display": "Bicarbonate [Moles/volume] in Central venous blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "97544-1",
+                                "display": "Bicarbonate [Moles/volume] standard in Central venous blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "11558-4",
+                                "display": "pH of Blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "2744-1",
+                                "display": "pH of Arterial blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "14873-4",
+                                "display": "pH of Cord blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "19213-8",
+                                "display": "pH of Mixed venous blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "2745-8",
+                                "display": "pH of Capillary blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "2753-2",
+                                "display": "pH of Serum or Plasma",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "2746-6",
+                                "display": "pH of Venous blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "28646-8",
+                                "display": "pH of Arterial cord blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "33913-5",
+                                "display": "pH of Capillary blood from Fetus",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "97536-7",
+                                "display": "pH of Central venous blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "28647-6",
+                                "display": "pH of Venous cord blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "14743-9",
+                                "display": "Glucose [Moles/volume] in Capillary blood by Glucometer",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "104598-8",
+                                "display": "Glucose [Mass/volume] in Arterial blood by Glucometer",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "104655-6",
+                                "display": "Glucose [Mass/volume] in Mixed venous blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "104597-0",
+                                "display": "Glucose [Mass/volume] in Venous blood by Glucometer",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "100746-7",
+                                "display": "Glucose [Moles/volume] in Mixed venous blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "2339-0",
+                                "display": "Glucose [Mass/volume] in Blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "2340-8",
+                                "display": "Glucose [Mass/volume] in Blood by Automated test strip",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "2341-6",
+                                "display": "Glucose [Mass/volume] in Blood by Test strip manual",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "2345-7",
+                                "display": "Glucose [Mass/volume] in Serum or Plasma",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "15074-8",
+                                "display": "Glucose [Moles/volume] in Blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "14749-6",
+                                "display": "Glucose [Moles/volume] in Serum or Plasma",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "41651-1",
+                                "display": "Glucose [Mass/volume] in Arterial blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "32016-8",
+                                "display": "Glucose [Mass/volume] in Capillary blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "41653-7",
+                                "display": "Glucose [Mass/volume] in Capillary blood by Glucometer",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "41652-9",
+                                "display": "Glucose [Mass/volume] in Venous blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "39481-7",
+                                "display": "Glucose [Moles/volume] in Arterial blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "47995-6",
+                                "display": "Glucose [Moles/volume] in Cord blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "39480-9",
+                                "display": "Glucose [Moles/volume] in Venous blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "74774-1",
+                                "display": "Glucose [Mass/volume] in Serum, Plasma or Blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "72516-8",
+                                "display": "Glucose [Moles/volume] in Blood by Automated test strip",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "51596-5",
+                                "display": "Glucose [Moles/volume] in Capillary blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "77135-2",
+                                "display": "Glucose [Moles/volume] in Serum, Plasma or Blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "39789-3",
+                                "display": "Potassium [Moles/volume] in Venous blood",
+                                "system": "http://loinc.org",
+                                "version": "2099"
+                            }
+                            
+                        ]
+                    },
+                    {
+                        "type": "date",
+                        "name": "date",
+                        "start": "2018-12-01",
+                        "end": "2025-01-31"
+                    }
+                ],
+                "groupReference": "https://www.medizininformatik-initiative.de/fhir/core/modul-labor/StructureDefinition/ObservationLab",
+                "name": "Laborwerte"
+            },
+            {
+                "attributes": [
+                    {
+                        "attributeRef": "Specimen.type",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Specimen.identifier",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Specimen.condition",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Specimen.note",
+                        "mustHave": false
+                    }
+                ],
+                "id": "1eb4bff1-2e51-4520-bc48-0f809d83bbf0",
+                "includeReferenceOnly": true,
+                "groupReference": "https://www.medizininformatik-initiative.de/fhir/ext/modul-biobank/StructureDefinition/Specimen",
+                "name": "Bioproben"
+            },
+            {
+                "attributes": [
+                    {
+                        "attributeRef": "Encounter.status",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Encounter.class",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Encounter.period",
+                        "mustHave": true
+                    },
+                    {
+                        "attributeRef": "Encounter.type",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Encounter.identifier:Aufnahmenummer",
+                        "mustHave": false
+                    }
+                ],
+                "id": "a03afcbf-482d-4d62-9ca6-dcd7af1bf623",
+                "filter": [
+                    {
+                        "type": "date",
+                        "name": "date",
+                        "start": "2019-01-01",
+                        "end": "2024-12-31"
+                    }
+                ],
+                "groupReference": "https://www.medizininformatik-initiative.de/fhir/core/modul-fall/StructureDefinition/KontaktGesundheitseinrichtung",
+                "name": "Fall"
+            },
+            {
+                "attributes": [
+                    {
+                        "attributeRef": "MedicationAdministration.status",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "MedicationAdministration.effective[x]",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "MedicationAdministration.medication[x]:medicationCodeableConcept.coding:atcClassDe",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "MedicationAdministration.dosage",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "MedicationAdministration.context",
+                        "mustHave": false,
+                        "linkedGroups": [
+                            "a03afcbf-482d-4d62-9ca6-dcd7af1bf623"
+                        ]
+                    }
+                ],
+                "id": "f6018700-ae3b-49bf-a6ae-cf1ecad14681",
+                "filter": [
+                    {
+                        "type": "token",
+                        "name": "code",
+                        "codes": [
+                            {
+                                "code": "B05BB01",
+                                "display": "Elektrolyte",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "C07",
+                                "display": "BETA-ADRENOZEPTORANTAGONISTEN",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "C01AA",
+                                "display": "Digitalisglykoside",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "B05BC",
+                                "display": "Osmodiuretika",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "M03AB01",
+                                "display": "Suxamethonium",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "C09",
+                                "display": "MITTEL MIT WIRKUNG AUF DAS RENIN-ANGIOTENSIN-SYSTEM",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "M01A",
+                                "display": "NICHTSTEROIDALE ANTIPHLOGISTIKA UND ANTIRHEUMATIKA",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "M01B",
+                                "display": "ANTIPHLOGISTIKA/ANTIRHEUMATIKA IN KOMBINATION",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "B01AB",
+                                "display": "Heparingruppe",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "L04AD",
+                                "display": "Calcineurin-Inhibitoren",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "C03",
+                                "display": "DIURETIKA",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "J01EA01",
+                                "display": "Trimethoprim",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "P01CX01",
+                                "display": "Pentamidindiisetionat",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "B05XA01",
+                                "display": "Kaliumchlorid",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "B05AX",
+                                "display": "Andere Blutprodukte",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "A12BA",
+                                "display": "Kalium",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "J01CE01",
+                                "display": "Benzylpenicillin",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "A10A",
+                                "display": "INSULINE UND ANALOGA",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "R03A",
+                                "display": "INHALATIVE SYMPATHOMIMETIKA",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "B05BA11",
+                                "display": "Glucose",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "V03AE",
+                                "display": "Mittel zur Behandlung der Hyperkaliämie und Hyperphosphatämie",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "H02AA",
+                                "display": "Mineralocorticoide",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "A02AH",
+                                "display": "Antacida mit Natriumbicarbonat",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "B05XA19",
+                                "display": "Kalium L-malat",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "H02BX20",
+                                "display": "Kombinationen",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "H02BX21",
+                                "display": "Desoxycorton, Kombinationen",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "A06",
+                                "display": "MITTEL GEGEN OBSTIPATION",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "R03C",
+                                "display": "SYMPATHOMIMETIKA ZUR SYSTEMISCHEN ANWENDUNG",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "date",
+                        "name": "effective-time",
+                        "start": "2018-12-01",
+                        "end": "2025-01-31"
+                    }
+                ],
+                "groupReference": "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationAdministration",
+                "name": "Administration Codeableconcept"
+            },
+            {
+                "attributes": [
+                    {
+                        "attributeRef": "MedicationAdministration.effective[x]",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "MedicationAdministration.identifier",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "MedicationAdministration.status",
+                        "mustHave": false
+                    }, 
+                    {
+                        "attributeRef": "MedicationAdministration.context",
+                        "mustHave": false,
+                        "linkedGroups": [
+                            "a03afcbf-482d-4d62-9ca6-dcd7af1bf623"
+                        ]
+                    },
+                    {
+                        "attributeRef": "MedicationAdministration.medication[x]",
+                        "mustHave": false,
+                        "linkedGroups": [
+                            "abc8e9e4-c5aa-4c23-9e53-a93a6d9e5789"
+                        ]
+                    }
+                ],
+                "id": "0e7eaba3-3220-4b97-afdc-ac3355951053",
+                "filter": [
+                    {
+                        "type": "token",
+                        "name": "medication:Medication.ingredient:Medication.code",
+                        "codes": [
+                            {
+                                "code": "B05BB01",
+                                "display": "Elektrolyte",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "C07",
+                                "display": "BETA-ADRENOZEPTORANTAGONISTEN",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "C01AA",
+                                "display": "Digitalisglykoside",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "B05BC",
+                                "display": "Osmodiuretika",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "M03AB01",
+                                "display": "Suxamethonium",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "C09",
+                                "display": "MITTEL MIT WIRKUNG AUF DAS RENIN-ANGIOTENSIN-SYSTEM",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "M01A",
+                                "display": "NICHTSTEROIDALE ANTIPHLOGISTIKA UND ANTIRHEUMATIKA",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "M01B",
+                                "display": "ANTIPHLOGISTIKA/ANTIRHEUMATIKA IN KOMBINATION",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "B01AB",
+                                "display": "Heparingruppe",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "L04AD",
+                                "display": "Calcineurin-Inhibitoren",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "C03",
+                                "display": "DIURETIKA",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "J01EA01",
+                                "display": "Trimethoprim",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "P01CX01",
+                                "display": "Pentamidindiisetionat",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "B05XA01",
+                                "display": "Kaliumchlorid",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "B05AX",
+                                "display": "Andere Blutprodukte",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "A12BA",
+                                "display": "Kalium",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "J01CE01",
+                                "display": "Benzylpenicillin",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "A10A",
+                                "display": "INSULINE UND ANALOGA",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "R03A",
+                                "display": "INHALATIVE SYMPATHOMIMETIKA",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "B05BA11",
+                                "display": "Glucose",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "V03AE",
+                                "display": "Mittel zur Behandlung der Hyperkaliämie und Hyperphosphatämie",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "H02AA",
+                                "display": "Mineralocorticoide",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "A02AH",
+                                "display": "Antacida mit Natriumbicarbonat",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "B05XA19",
+                                "display": "Kalium L-malat",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "H02BX20",
+                                "display": "Kombinationen",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "H02BX21",
+                                "display": "Desoxycorton, Kombinationen",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "A06",
+                                "display": "MITTEL GEGEN OBSTIPATION",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "R03C",
+                                "display": "SYMPATHOMIMETIKA ZUR SYSTEMISCHEN ANWENDUNG",
+                                "system": "http://fhir.de/CodeSystem/bfarm/atc",
+                                "version": "2099"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "date",
+                        "name": "effective-time",
+                        "start": "2018-12-01",
+                        "end": "2025-01-31"
+                    }
+                ],
+                "groupReference": "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/MedicationAdministration",
+                "name": "Administration Complex"
+            },
+            {
+                "attributes": [
+                    {
+                        "attributeRef": "Medication.code.coding:atcClassDe",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Medication.status",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Medication.ingredient.item[x]",
+                        "mustHave": false,
+                        "linkedGroups": [
+                            "abc8e9e4-c5aa-4c23-9e53-a93a6d9e5789"
+                        ]
+                    }
+                ],
+                "id": "abc8e9e4-c5aa-4c23-9e53-a93a6d9e5789",
+                "includeReferenceOnly": true,
+                "groupReference": "https://www.medizininformatik-initiative.de/fhir/core/modul-medikation/StructureDefinition/Medication",
+                "name": "Medikation"
+            },
+            {
+                "attributes": [
+                    {
+                        "attributeRef": "Procedure.status",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Procedure.extension:Dokumentationsdatum",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Procedure.code",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Procedure.performed[x]",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Procedure.encounter",
+                        "mustHave": false,
+                        "linkedGroups": [
+                            "a03afcbf-482d-4d62-9ca6-dcd7af1bf623"
+                        ]
+                    }
+                ],
+                "id": "b3cb6cc3-5b38-4ce9-afaf-5b129e42a646",
+                "filter": [
+                    {
+                        "type": "token",
+                        "name": "code",
+                        "codes": [
+                            {
+                                "code": "8-853",
+                                "display": "Hämofiltration",
+                                "system": "http://fhir.de/CodeSystem/bfarm/ops",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "8-854",
+                                "display": "Hämodialyse",
+                                "system": "http://fhir.de/CodeSystem/bfarm/ops",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "8-855",
+                                "display": "Hämodiafiltration",
+                                "system": "http://fhir.de/CodeSystem/bfarm/ops",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "8-857",
+                                "display": "Peritonealdialyse",
+                                "system": "http://fhir.de/CodeSystem/bfarm/ops",
+                                "version": "2099"
+                            },
+                             {
+                                "code": "265764009",
+                                "display": "Renal dialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "341939001",
+                                "display": "Extracorporeal hemofiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "302497006",
+                                "display": "Hemodialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233586004",
+                                "display": "Hemodiafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233581009",
+                                "display": "Hemofiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "182750009",
+                                "display": "Ultrafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "714749008",
+                                "display": "Continuous renal replacement therapy (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233578004",
+                                "display": "Continuous hemodialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233575001",
+                                "display": "Intermittent hemodialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233588003",
+                                "display": "Continuous hemodiafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233583007",
+                                "display": "Continuous hemofiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233579007",
+                                "display": "Continuous arteriovenous hemodialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233580005",
+                                "display": "Continuous venovenous hemodialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "708932005",
+                                "display": "Emergency hemodialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "427053002",
+                                "display": "Extracorporeal albumin hemodialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "57274006",
+                                "display": "Initial hemodialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233577009",
+                                "display": "Intermittent hemodialysis with continuous ultrafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233576000",
+                                "display": "Intermittent hemodialysis with sequential ultrafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "11932001",
+                                "display": "Stabilizing hemodialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "698074000",
+                                "display": "Sustained low-efficiency dialysis (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233589006",
+                                "display": "Continuous arteriovenous hemodiafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233590002",
+                                "display": "Continuous venovenous hemodiafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "708933000",
+                                "display": "Emergency hemodiafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233587008",
+                                "display": "Intermittent hemodiafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "708930002",
+                                "display": "Maintenance hemodiafiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233584001",
+                                "display": "Continuous arteriovenous hemofiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233585000",
+                                "display": "Continuous venovenous hemofiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "715743002",
+                                "display": "Emergency hemofiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "233582002",
+                                "display": "Intermittent hemofiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            },
+                            {
+                                "code": "708934006",
+                                "display": "Maintenance hemofiltration (procedure)",
+                                "system": "http://snomed.info/sct",
+                                "version": "2099"
+                            }
+                        ]
+                    },
+                    {
+                        "type": "date",
+                        "name": "date",
+                        "start": "2018-12-01",
+                        "end": "2025-01-31"
+                    }
+                ],
+                "groupReference": "https://www.medizininformatik-initiative.de/fhir/ext/modul-icu/StructureDefinition/extrakorporales-verfahren",
+                "name": "Prozeduren ICU"
+            },
+            {
+                "attributes": [
+                    {
+                        "attributeRef": "Observation.status",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Observation.effective[x]",
+                        "mustHave": false
+                    },
+                    {
+                        "attributeRef": "Observation.encounter",
+                        "mustHave": false,
+                        "linkedGroups": [
+                            "a03afcbf-482d-4d62-9ca6-dcd7af1bf623"
+                        ]
+                    }
+                ],
+                "id": "ae292daa-4591-43c2-872e-55630bbec435",
+                "filter": [
+                    {
+                        "type": "date",
+                        "name": "date",
+                        "start": "2018-12-01",
+                        "end": "2025-01-31"
+                    }
+                ],
+                "groupReference": "https://www.medizininformatik-initiative.de/fhir/ext/modul-icu/StructureDefinition/dauer-haemodialysesitzung",
+                "name": "Haemodialyse"
+            },
+            {
+                "attributes": [
+                    {
+                        "attributeRef": "ServiceRequest.identifier",
+                        "mustHave": false
+                    }
+                ],
+                "id": "c86b92ef-1494-4e53-b3b3-b9ee669afec4",
+                "includeReferenceOnly": true,
+                "groupReference": "https://www.medizininformatik-initiative.de/fhir/core/modul-labor/StructureDefinition/ServiceRequestLab",
+                "name": "ServiceRequest"
+            }
+        ]
+    }
+}

@@ -1,0 +1,11 @@
+
+.RData
+.Rhistory
+.RDataTmp
+.Rproj.user
+*.Rproj
+
+output
+ignore*
+.positai
+test
