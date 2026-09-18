@@ -8,6 +8,9 @@ services:
       KALIUM_OUTPUT_DIR: /output
       KALIUM_WORKING_DIR: /work
     volumes:
+      # R-Scripts
+      - ./R:/app/R:ro
+      - ./main.R:/app/Main.R:ro
       # config files
       - ./config.R:/app/config.R:ro
       - ./unit_conversion.csv:/app/unit_conversion.csv:ro

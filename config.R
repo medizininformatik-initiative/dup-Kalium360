@@ -127,9 +127,14 @@ global_max_time <- as.POSIXct("2024-12-31 23:59:59", tz = "UTC")
 # default cut-offs
 # low and high are default normal ranges in case there is no reference range
 # low_ext and high_ext define the cut-off for clinical implausible values
+# cut-offs l1-h3 are used to define subcohortes
 # this cut-offs are (only) used on unit normalized values
 
+
 kalium_ref <- list(low = 3.5, high = 5.0,
+                   low_0_1 = 3.5, high_0_1 = 6.5,
+                   low_1_2 = 3.5, high_1_2 = 5.5,
+                   l1 = 3.0, l2 = 2.5, h1 = 5.5, h2 = 6.0, h3 = 6.5,
                    low_ext = 1.5, high_ext = 9.0)
 glucose_ref <- list(low = 70, high = 110,
                     low_ext = 10, high_ext = 1500)
@@ -139,8 +144,8 @@ crea_ref <- list(low = NA_real_, high = NA_real_,
                  low_ext = 0.1, high_ext = 40)
 pH_ref <- list(low = 7.35, high = 7.45,
                low_ext = 6.8, high_ext = 7.8)
-GFR_ref <- list(low = 90 , high = NA_real_,
-                low_ext = 0, high_ext = 150)
+GFR_ref <- list(low = 90, high = NA_real_,
+                low_ext = 0, high_ext = 200)
 
 # matching window (hours) for each lab-result.
 lab_windows <- c(glucose = 6, bicarbonat = 6, pH = 6, crea = 48, GFR = 48)
@@ -255,4 +260,3 @@ icd_groups <- tribble(
 
 # notes search snippets.
 notes_search_snippets <-c('hämol', 'haemol', 'hemol')
-

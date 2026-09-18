@@ -54,49 +54,101 @@ loadPotassiumData <- function() {
     glue_sql("1 = 1", .con = con)
   }
 
-  # create raw table with value_norm and interpretation of result (L/N/H)
+  # create raw table with value_norm and interpretation of result as (L/N/H)
+  # and as a more detailed (L3/L2/L1/N/H1/H2/H3/H4)
+  # In case there is no defined reference range default reference values are
+  # applied. Children under two have their own reference values. In case
+  # there is no age we assume the patients to be older than 2.
+  # Note that for children under 2 the normal range is larger so that
+  # for age 0 h1 and h2 will result in N. And for age 1-2 h1 will result in N
+
   query <- glue_sql("
-      CREATE OR REPLACE TEMP TABLE potassium_result_raw AS
-      WITH p AS (
-        SELECT *,
-        CASE WHEN TRIM(comparator) IN ('>', '>=', '<', '<=')
-        THEN TRIM(comparator) ELSE NULL END AS comparator_norm
-        FROM potassium
-      )
+    CREATE OR REPLACE TEMP TABLE potassium_result_raw AS
+
+    WITH p AS (
       SELECT
-          p.loinc, p.obs_id, p.patient, p.time, p.age, p.gender,
-          p.value, p.unit,
-          p.value * uc.factor AS value_norm,
+        *,
         CASE
-          WHEN p.comparator_norm IN ('<', '<=') THEN
-            CASE
-             WHEN (ref_low IS NOT NULL AND p.value <= ref_low)
-              OR (ref_low IS NULL AND value_norm <= {kalium_ref$low}) THEN 'L'
-             ELSE 'N'
-            END
-          WHEN p.comparator_norm IN ('>', '>=') THEN
-            CASE
-              WHEN (ref_high IS NOT NULL AND p.value >= ref_high)
-               OR (ref_high IS NULL AND value_norm >= {kalium_ref$high}) THEN 'H'
-              ELSE 'N'
-            END
-          WHEN (ref_low IS NOT NULL AND p.value < ref_low)
-            OR (ref_low IS NULL AND value_norm < {kalium_ref$low}) THEN 'L'
-          WHEN (ref_high IS NOT NULL AND p.value > ref_high)
-            OR (ref_high IS NULL AND value_norm > {kalium_ref$high}) THEN 'H'
-          ELSE 'N'
-        END AS result
-        FROM p
-        LEFT JOIN unit_conversion uc
-        ON uc.label = 'kalium' AND uc.source_unit = p.unit
-        WHERE p.value IS NOT NULL
+          WHEN age = 0 THEN {kalium_ref$low_0_1}
+          WHEN age IN (1, 2) THEN {kalium_ref$low_1_2}
+          ELSE {kalium_ref$low}
+        END AS ref_low_default,
+        CASE
+          WHEN age = 0 THEN {kalium_ref$high_0_1}
+          WHEN age IN (1, 2) THEN {kalium_ref$high_1_2}
+          ELSE {kalium_ref$high}
+        END AS ref_high_default,
+        CASE
+          WHEN TRIM(comparator) IN ('<', '<=', '>', '>=')
+          THEN TRIM(comparator)
+          ELSE NULL
+        END AS comparator_norm
+      FROM potassium
+    ),
+    n AS (
+      SELECT
+        p.*,
+        p.value * uc.factor AS value_norm,
+        COALESCE(p.ref_low, p.ref_low_default) AS ref_low_effective,
+        COALESCE(p.ref_high, p.ref_high_default) AS ref_high_effective
+      FROM p
+      LEFT JOIN unit_conversion uc
+        ON uc.label = 'kalium'
+        AND uc.source_unit = p.unit
+      WHERE p.value IS NOT NULL
         AND p.unit IS NOT NULL
         AND {invalid_filter_sql}
-        AND NOT (
-          p.age IS NOT NULL AND p.age < 18
-          AND (p.ref_low IS NULL OR p.ref_high IS NULL)
-      )
-    ", .con = con)
+    ),
+    classified AS (
+      SELECT
+        n.*,
+        CASE
+          WHEN comparator_norm IN ('<', '<=') THEN 'L'
+          WHEN comparator_norm IN ('>', '>=') THEN 'H'
+          WHEN value_norm < ref_low_effective THEN 'L'
+          WHEN value_norm > ref_high_effective THEN 'H'
+          ELSE 'N'
+        END AS result
+      FROM n
+    )
+    SELECT
+      loinc,
+      obs_id,
+      patient,
+      time,
+      age,
+      gender,
+      value,
+      unit,
+      comparator,
+      value_norm,
+      result,
+      CASE
+        WHEN comparator_norm IN ('<', '<=') THEN
+          CASE
+            WHEN value_norm < {kalium_ref$l2} THEN 'L3'
+            WHEN value_norm < {kalium_ref$l1} THEN 'L2'
+            ELSE 'L1'
+          END
+        WHEN comparator_norm IN ('>', '>=') THEN
+          CASE
+            WHEN value_norm <= {kalium_ref$h1} THEN 'H1'
+            WHEN value_norm <= {kalium_ref$h2} THEN 'H2'
+            WHEN value_norm <= {kalium_ref$h3} THEN 'H3'
+            ELSE 'H4'
+          END
+        WHEN value_norm < {kalium_ref$l2} THEN 'L3'
+        WHEN value_norm < {kalium_ref$l1} THEN 'L2'
+        WHEN value_norm < ref_low_effective THEN 'L1'
+        WHEN value_norm <= ref_high_effective THEN 'N'
+        WHEN value_norm <= {kalium_ref$h1} THEN 'H1'
+        WHEN value_norm <= {kalium_ref$h2} THEN 'H2'
+        WHEN value_norm <= {kalium_ref$h3} THEN 'H3'
+        ELSE 'H4'
+      END AS result_detail
+    FROM classified
+  ", .con = con)
+
   dbExecute(con, query)
 
   # get all values that are not inside the plausibility range
@@ -134,7 +186,8 @@ loadPotassiumData <- function() {
         p.value,
         p.unit,
         p.value_norm,
-        p.result
+        p.result,
+        p.result_detail
       FROM potassium_result_raw p
       WHERE value_norm <= {kalium_ref$high_ext}
        AND value_norm >= {kalium_ref$low_ext}
@@ -214,6 +267,16 @@ loadPotassiumData <- function() {
   results <- dbGetQuery(con, query)
   writeLogData("potassium_measurements by result: ", results)
 
+  # get summary of detailed results
+  query <- glue_sql("
+     SELECT result_detail, count(*) as n
+     FROM potassium_result
+     GROUP BY result_detail
+    ", .con = con)
+
+  results_detail <- dbGetQuery(con, query)
+  writeLogData("potassium_measurements by detailed result: ", results_detail)
+
   query <- glue_sql("
       DROP TABLE IF EXISTS potassium_result_raw;
     ", .con = con)
@@ -237,6 +300,9 @@ loadEncounter <- function() {
     return (FALSE)
   }
 
+  types_clause <- getTypeClause(enc_period_start = "TIMESTAMP",
+                                enc_period_end = "TIMESTAMP")
+
   path <- paste0(data_dir, "/", name_of_encounter_csv)
 
   # get all encounters. Filter for enc_type_system if available
@@ -249,7 +315,7 @@ loadEncounter <- function() {
             enc.{`enc_period_start`} AS period_start,
             enc.{`enc_period_end`} AS period_end,
             enc.{`enc_type`} AS type
-      FROM read_csv_auto({path}) enc
+      FROM read_csv_auto({path}, {types_clause}) enc
       WHERE (enc.{`enc_status`} IS NULL
         OR NOT enc.{`enc_status`} IN ('planned', 'cancelled', 'entered-in-error'))
       AND (enc.{`enc_type_system`} IS NULL OR {`enc_type_system`} = 'http://fhir.de/CodeSystem/Kontaktebene')
@@ -370,6 +436,10 @@ loadMedicationData <- function() {
 
       path_adm <- paste0(data_dir, "/", name_of_medadmMedCode_csv)
 
+      types_clause <- getTypeClause(adm_period_start = "TIMESTAMP",
+                                    adm_period_end = "TIMESTAMP",
+                                    adm_effective = "TIMESTAMP")
+
       query <- glue_sql("
          CREATE OR REPLACE TEMP TABLE adm_join AS
               SELECT DISTINCT
@@ -380,7 +450,7 @@ loadMedicationData <- function() {
               adm.{`adm_effective`} AS effective,
               adm.{`adm_enc`} AS encounter,
               adm.{`adm_med_ref`} AS med_ref
-        FROM read_csv_auto({path_adm}) adm
+        FROM read_csv_auto({path_adm}, {types_clause}) adm
         WHERE adm.{`adm_status`} IS NULL
           OR NOT adm.{`adm_status`} IN ('not-done', 'on-hold', 'entered-in-error', 'stopped');
         ", .con = con)
@@ -431,6 +501,10 @@ loadMedicationData <- function() {
 
     path_adm <- paste0(data_dir, "/", name_of_medadmCode_csv)
 
+    types_clause <- getTypeClause(adm_period_start = "TIMESTAMP",
+                                  adm_period_end = "TIMESTAMP",
+                                  adm_effective = "TIMESTAMP")
+
     query <- glue_sql("
           CREATE OR REPLACE TEMP TABLE medadm_code AS
           SELECT DISTINCT
@@ -444,7 +518,7 @@ loadMedicationData <- function() {
           CAST(NULL AS VARCHAR) AS med_id2,
           adm.{`adm_med_atc`} AS atc,
           'medadm_code' AS source
-          FROM read_csv_auto({path_adm}) adm
+          FROM read_csv_auto({path_adm},{types_clause}) adm
           WHERE adm.{`adm_status`} IS NULL
             OR NOT adm.{`adm_status`} IN ('not-done', 'on-hold', 'entered-in-error', 'stopped')
         ", .con = con)
@@ -467,6 +541,10 @@ loadMedicationData <- function() {
 
       path_adm <- paste0(data_dir, "/", name_of_medadmComplex_csv)
 
+      types_clause <- getTypeClause(adm_period_start = "TIMESTAMP",
+                                    adm_period_end = "TIMESTAMP",
+                                    adm_effective = "TIMESTAMP")
+
       query <- glue_sql("
          CREATE OR REPLACE TEMP TABLE adm_join AS
               SELECT DISTINCT
@@ -477,7 +555,7 @@ loadMedicationData <- function() {
               adm.{`adm_effective`} AS effective,
               adm.{`adm_enc`} AS encounter,
               adm.{`adm_med_ref`} AS med_ref
-        FROM read_csv_auto({path_adm}) adm
+        FROM read_csv_auto({path_adm}, {types_clause}) adm
         WHERE adm.{`adm_status`} IS NULL
          OR NOT adm.{`adm_status`} IN ('not-done', 'on-hold', 'entered-in-error', 'stopped');
         ", .con = con)
@@ -679,7 +757,13 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
 
   issued_expr <- getColumnExpr(name_of_lab_csv, obs_issued, "TIMESTAMP")
 
-  types_clause <- getVarcharTypeClause(c(obs_value_code))
+  types_clause <- getTypeClause(obs_value_code = "VARCHAR",
+                               obs_value = "DOUBLE",
+                               obs_value_unit = "VARCHAR",
+                               obs_reference_low = "DOUBLE",
+                               obs_reference_high = "DOUBLE",
+                               obs_reference_high_unit = "VARCHAR",
+                               obs_reference_low_unit = "VARCHAR")
 
   query <- glue_sql("
         CREATE OR REPLACE TEMP TABLE {name_raw} AS
@@ -696,7 +780,7 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
           o.{`obs_patient`} AS patient,
           o.{`obs_value_code`} AS codeableconcept,
           o.{`obs_time`} AS time,
-          o.{issued_expr} AS issued,
+          {issued_expr} AS issued,
           o.{`obs_encounter`} AS encounter,
           {name} AS label
         FROM read_csv_auto({path}, {types_clause}) o
@@ -779,6 +863,15 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
 
   if (nrow(comparator_summary) > 0) {
    writeLogData(paste0("Measurements with comparator in ", name, ": "), comparator_summary)
+
+    query <- glue_sql("
+      SELECT comparator, value, count(*) as n
+      FROM  {name_raw}
+      WHERE comparator IS NOT NULL
+      GROUP BY comparator, value
+    ", .con = con)
+    comp_value <- dbGetQuery(con, query)
+    writeLogData("Found comparator/value/count: ", comp_value)
   }
 
   # get the default reference_values
@@ -874,22 +967,14 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
             ELSE o.value
       END AS value_norm,
       CASE
-        WHEN o.comparator_norm IN ('<', '<=') THEN
-          CASE
-            WHEN (o.ref_low IS NOT NULL AND o.value <= ref_low)
-              OR (o.ref_low IS NULL AND value_norm <= {default$low}) THEN 'L'
-            ELSE 'N'
-          END
-        WHEN o.comparator_norm IN ('>', '>=') THEN
-          CASE
-            WHEN (o.ref_high IS NOT NULL AND o.value >= ref_high)
-              OR (o.ref_high IS NULL AND value_norm >= {default$high}) THEN 'H'
-            ELSE 'N'
-          END
-        WHEN (o.ref_low IS NOT NULL AND o.value < ref_low)
-          OR (o.ref_low IS NULL AND value_norm < {default$low}) THEN 'L'
-        WHEN (o.ref_high IS NOT NULL AND o.value > ref_high)
-          OR (o.ref_high IS NULL AND value_norm > {default$high}) THEN 'H'
+        WHEN o.comparator_norm IN ('<', '<=') THEN 'L'
+        WHEN o.comparator_norm IN ('>', '>=') THEN 'H'
+        WHEN (o.ref_low IS NOT NULL AND o.value < o.ref_low)
+          OR (o.ref_low IS NULL AND value_norm < {default$low})
+          THEN 'L'
+        WHEN (o.ref_high IS NOT NULL AND o.value > o.ref_high)
+          OR (o.ref_high IS NULL AND value_norm > {default$high})
+          THEN 'H'
         ELSE 'N'
       END AS result,
       o.label
@@ -972,10 +1057,15 @@ loadProcedures <- function() {
       performed_sql <- if (icu) {
         glue_sql("NULL::TIMESTAMP", .con = con)
       } else {
-        glue_sql("{`pro_performed`}", .con = con)
+        glue_sql("{`pro_performed`}::TIMESTAMP", .con = con)
       }
 
-      types_clause <- getVarcharTypeClause(c(pro_sno_code, pro_ops_code))
+      #types_clause <- getVarcharTypeClause(c(pro_sno_code, pro_ops_code))
+
+      types_clause <- getTypeClause(pro_period_start = "TIMESTAMP",
+                                   pro_period_end = "TIMESTAMP",
+                                   pro_sno_code = "VARCHAR",
+                                   pro_ops_code = "VARCHAR")
 
       query <- glue_sql("
             CREATE OR REPLACE TEMP TABLE {name} AS
@@ -1022,6 +1112,8 @@ loadProcedures <- function() {
 
       # we want to union with other procedures, so we need to name it like
       # a procedure
+
+      types_clause <- getTypeClause(obs_start = "TIMESTAMP", obs_end = "TIMESTAMP")
       query <- glue_sql("
             CREATE OR REPLACE TEMP TABLE dauer_dialyse AS
             SELECT DISTINCT
@@ -1032,7 +1124,7 @@ loadProcedures <- function() {
               {`obs_time`} AS performed,
               {`obs_encounter`} AS encounter,
               'icu_dauer' AS code_type
-            FROM read_csv_auto({path}) pro
+            FROM read_csv_auto({path}, {types_clause}) pro
             WHERE ({`obs_status`} IS NULL
               OR NOT {`obs_status`} IN ('registered', 'preliminary', 'cancelled','entered-in-error'))
           ", .con = con)

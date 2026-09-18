@@ -17,7 +17,7 @@ source("./R/Evaluate_covariates.R")
 source("./R/Loading.R")
 source("./R/Statistic.R")
 
-version <- "0.8"
+version <- "0.81"
 
 startKalium <- function() {
 

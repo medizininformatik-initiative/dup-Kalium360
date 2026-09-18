@@ -87,7 +87,16 @@ createBasePotassiumTable <- function() {
 
   basedon_expr <- getColumnExpr(name_of_lab_csv, obs_basedon, "VARCHAR")
 
-  types_clause <- getVarcharTypeClause(c(obs_value_code, obs_method_code))
+  #types_clause <- getVarcharTypeClause(c(obs_value_code, obs_method_code))
+
+  types_clause <- getTypeClause(obs_value_code = "VARCHAR",
+                                obs_method_code = "VARCHAR",
+                                obs_value = "DOUBLE",
+                                obs_value_unit = "VARCHAR",
+                                obs_reference_low = "DOUBLE",
+                                obs_reference_high = "DOUBLE",
+                                obs_reference_high_unit = "VARCHAR",
+                                obs_reference_low_unit = "VARCHAR")
 
 
   # core table with potassium patient join

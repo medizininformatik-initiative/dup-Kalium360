@@ -37,7 +37,7 @@ evaluateCovariates <- function() {
   checkEncounterReferences(availability)
 
   writeLog("Matching the chronological next potassium measurement")
-  matchNextPotassium()
+  next_6h <- matchNextPotassium()
 
   if(availability$lab) {
     writeLog("Matching labresults to potassium measurements")
@@ -93,6 +93,9 @@ evaluateCovariates <- function() {
             file = paste0(output_dir, "/timelineCovariates.csv"))
 
   write.csv(statistic_counts, file = paste0(output_dir, "/covariatesCounts.csv"))
+
+  write.csv(next_6h, file = paste0(output_dir, "/potassiumNext6h.csv"))
+
 
   if (!is.null(compare_serum_blood)) {
     write.csv(compare_serum_blood, file = paste0(output_dir, "/compareSerumBlood.csv"))
@@ -246,7 +249,7 @@ assignEncounterContext <- function(encounter_available) {
   # round numbers to two digits
   num_cols <- sapply(av_measurements, is.numeric)
   av_measurements[num_cols] <- round(av_measurements[num_cols], 2)
-  writeLogData("Average (mean, median, sd, min, max, q1, q3) duration of IMP encounters: ",
+  writeLogData("Average (mean, median, sd, min, max, q1, q3) measurements per IMP encounters: ",
                av_measurements, kanonymity = FALSE)
 
   # how long are the encounters
@@ -276,7 +279,7 @@ assignEncounterContext <- function(encounter_available) {
   # round numbers to two digits
   num_cols <- sapply(av_duration, is.numeric)
   av_duration[num_cols] <- round(av_duration[num_cols], 2)
-  writeLogData("Average (mean, median, sd, min, max, q1, q3) of measurements per IMP encounter: ",
+  writeLogData("Average (mean, median, sd, min, max, q1, q3) duration of IMP encounter: ",
                av_duration, kanonymity = FALSE)
 
   # Summary: IMP vs AMB counts
@@ -357,7 +360,6 @@ calculateTimelineMain <- function(availability) {
 
     # calculate availibilty of data. Data is available if
     # there is more than 50% of the max data available
-    # TODO: 50% ist hier erstmal willkürlich. Zu diskutieren.
 
     counts    <- res[[tbl]]
     threshold <- max(counts, na.rm = TRUE) * 0.5
@@ -558,11 +560,9 @@ matchLab <- function() {
   flag_sql <- paste(flag_fragments, collapse = ",\n  ")
 
   # to add a value to each matching potassium measurement.
-  # if there are multiple chosse the one that is closest to the potassium
+  # if there are multiple choose the one that is closest to the potassium
   # measurement. If there are still multiple choose by that order:
-  # result: L than H than N. If still unclear choose random.
-
-  #TODO: nachdenken/überprüfen ob das tut was es soll.
+  # result: N than L than H. If still unclear choose random.
 
   value_fragments <- mapply(function(label, window_hours) {
 
@@ -583,9 +583,9 @@ matchLab <- function() {
               l.time::TIMESTAMP - p.time::TIMESTAMP
             ))),
             CASE l.result
-              WHEN 'L' THEN 1
-              WHEN 'H' THEN 2
-              WHEN 'N' THEN 3
+              WHEN 'N' THEN 1
+              WHEN 'L' THEN 2
+              WHEN 'H' THEN 3
               ELSE 4
             END
           LIMIT 1
@@ -820,14 +820,19 @@ conditionEncounterTimeline <- function() {
       e.class,
       e.patient,
       e.period_start,
+      e.period_end,
       c.con_id,
       c.time AS condition_time,
       CASE
         WHEN c.time >= e.period_start
-             AND c.time <  e.period_start + INTERVAL 1 DAY
+            AND c.time <  e.period_start + INTERVAL 1 DAY
           THEN 'day1'
+        WHEN c.time >= e.period_end - INTERVAL 1 DAY
+            AND c.time <  e.period_end
+          THEN 'end_date'
         WHEN c.time >= e.period_start + INTERVAL 1 DAY
              AND c.time <  e.period_start + INTERVAL 3 DAY
+             AND c.time <  e.period_end
           THEN 'day2_3'
         WHEN c.time >= e.period_start + INTERVAL 3 DAY
              AND c.time <  e.period_end
@@ -844,19 +849,23 @@ conditionEncounterTimeline <- function() {
         WHEN c.time >= e.period_start
              AND c.time <  e.period_start + INTERVAL 1 DAY
           THEN 1
+        WHEN c.time >= e.period_end - INTERVAL 1 DAY
+            AND c.time <  e.period_end
+          THEN 2
         WHEN c.time >= e.period_start + INTERVAL 1 DAY
              AND c.time <  e.period_start + INTERVAL 3 DAY
-          THEN 2
-        WHEN c.time >= e.period_start + INTERVAL 3 DAY
              AND c.time <  e.period_end
           THEN 3
+        WHEN c.time >= e.period_start + INTERVAL 3 DAY
+             AND c.time <  e.period_end
+          THEN 4
         WHEN c.time >= e.period_end
              AND c.time <  e.period_end + INTERVAL 3 DAY
-          THEN 4
+          THEN 5
         WHEN c.time >= e.period_end + INTERVAL 3 DAY
              AND c.time <  e.period_end + INTERVAL 7 DAY
-          THEN 5
-      ELSE 6
+          THEN 6
+      ELSE 7
       END AS bucket_priority,
       CASE
         WHEN e.class IN ('IMP', 'SS') THEN 1
@@ -876,8 +885,10 @@ conditionEncounterTimeline <- function() {
         ROW_NUMBER() OVER (
           PARTITION BY con_id
           ORDER BY bucket_priority ASC,
-                  class_priority ASC,
-          ABS(EPOCH(condition_time) - EPOCH(period_start)) ASC
+           class_priority ASC,
+           ABS(EPOCH(condition_time) - EPOCH(
+             CASE WHEN bucket_priority IN (2,5,6) THEN period_end ELSE period_start END
+         )) ASC
         ) AS rn
       FROM condition_timing_all
     )
@@ -910,6 +921,7 @@ matchNextPotassium <- function() {
       n.value_norm     AS next_value,
       n.result    AS next_result,
       n.enc_id    AS next_enc_id,
+      n.result_detail AS next_result_detail,
       CASE WHEN n.obs_id IS NOT NULL THEN 1 ELSE 0 END AS next_flag,
       CASE WHEN n.obs_id IS NOT NULL THEN
         (EPOCH(n.time::TIMESTAMP) - EPOCH(p.time::TIMESTAMP)) / 3600.0
@@ -997,22 +1009,34 @@ matchNextPotassium <- function() {
   writeLogData("Follow-up in hours (avg, median, sd, p25, p75):",
                result, kanonymity = FALSE)
 
-  # # get avarage follow-up times
-  # average <- glue_sql("
-  #   SELECT
-  #     AVG(next_hours)                                    AS avg_hours_total,
-  #     AVG(next_hours) FILTER (WHERE same_encounter = 1)  AS avg_hours_same_encounter,
-  #     AVG(next_hours) FILTER (WHERE next_hours <= 120)   AS avg_hours_5d
-  #   FROM potassium_result
-  # ", .con = con)
-  # next_average <- dbGetQuery(con, average)
-  #
-  # # round to two digits
-  # num_cols <- sapply(next_average, is.numeric)
-  # next_average[num_cols] <- round(next_average[num_cols], 2)
-  #
-  # writeLogData("Average hours (total, same-enc, 5d): ",
-  #              next_average, kanonymity = FALSE)
+  # compare measurement within 6h to detect implausible measurements
+
+  count_query <- glue_sql("
+     SELECT
+      COUNT(*) AS n
+    FROM potassium_result
+    WHERE next_hours <= 6
+  ", .con = con)
+  count_6h <- dbGetQuery(con, count_query)
+
+  writeLogData("Total next measurement within 6h: ")
+  writeLogData(count_6h)
+
+
+  stats_query <- glue_sql("
+     SELECT
+      result_detail,
+      next_result_detail,
+      COUNT(*) AS count
+    FROM potassium_result
+    WHERE next_hours <= 6
+    GROUP BY result_detail, next_result_detail
+  ", .con = con)
+
+  next_detail <- dbGetQuery(con, stats_query)
+  next_detail <- applyKAnonymity(next_detail,"count", c("result_detail", "next_result_detail"))
+
+  return(next_detail)
 }
 
 matchProceduresAfter <- function() {

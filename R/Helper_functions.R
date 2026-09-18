@@ -232,7 +232,7 @@ getColumnExpr <- function(name_of_file, name_of_column, type_of_column) {
   ))$column_name
 
   if (name_of_column %in% csv_cols) {
-    expr <- glue_sql("{`name_of_column`}", .con = con)
+    expr <- glue_sql("CAST({`name_of_column`} AS {DBI::SQL(type_of_column)})", .con = con)
     return(expr)
   } else {
     writeLogData(paste0("Note: no ", name_of_column, " column in ", name_of_file))
@@ -255,6 +255,28 @@ getVarcharTypeClause <- function(cols) {
 
   return(type_cast)
 }
+
+# build a type_clause for duckdb with mixed types. Input is a list like
+# z.B. getTypeClause(code = "VARCHAR", ref = "DOUBLE")
+getTypeClause <- function(...) {
+
+  args <- list(...)
+  var_names <- names(args)
+
+  col_names <- sapply(var_names, function(n) get(n, envir = parent.frame()))
+  col_types <- unlist(args)
+
+  entries <- sprintf(
+    "%s: '%s'",
+    sapply(col_names, function(x) DBI::dbQuoteString(con, x)),
+    col_types
+  )
+
+  type_cast <- DBI::SQL(paste0("types={", paste(entries, collapse = ", "), "}"))
+
+  return(type_cast)
+}
+
 
 ######
 # function to cut-off data that does not meet the required k-anonymity

@@ -50,7 +50,16 @@ createTablesForPotassiumAnalysis <- function() {
   # key informations
   path <- paste0(data_dir, "/", name_of_lab_csv)
 
-  types_clause <- getVarcharTypeClause(c(obs_value_code, obs_method_code))
+  # <- getVarcharTypeClause(c(obs_value_code, obs_method_code))
+
+  types_clause <- getTypeClause(obs_value_code = "VARCHAR",
+                                obs_method_code = "VARCHAR",
+                                obs_value = "DOUBLE",
+                                obs_value_unit = "VARCHAR",
+                                obs_reference_low = "DOUBLE",
+                                obs_reference_high = "DOUBLE",
+                                obs_reference_high_unit = "VARCHAR",
+                                obs_reference_low_unit = "VARCHAR")
 
   query <- glue_sql("
         CREATE OR REPLACE TEMP TABLE potassium_data_raw AS
@@ -288,6 +297,16 @@ calculateStatisticsAll <- function () {
   if(count_comp > 0) {
     writeLogData(paste0("Note: Measurements with a comparator-result will be ",
                  "excluded from statistics and distribution"))
+
+    query <- glue_sql("
+      SELECT comparator, value, count(*) as n
+      FROM potassium_part1
+      WHERE comparator IS NOT NULL
+      GROUP BY comparator, value
+    ", .con = con)
+
+    comp_value <- dbGetQuery(con, query)
+    writeLogData("Found comparator/value/count: ", comp_value)
   }
 
   # get min and max age

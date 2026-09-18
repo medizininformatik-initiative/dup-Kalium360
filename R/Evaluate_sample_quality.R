@@ -42,6 +42,12 @@ createTablesForSampleQuality <- function() {
 
   types_clause <- DBI::SQL(sprintf("types={'%s': 'VARCHAR'}", obs_value_code))
 
+  types_clause <- getTypeClause(obs_value_code = "VARCHAR",
+                                obs_value = "DOUBLE",
+                                obs_value_unit = "VARCHAR",
+                                obs_reference_low = "DOUBLE",
+                                obs_reference_high = "DOUBLE")
+
   # create a table with all available quality loincs
   query <- glue_sql("
         CREATE OR REPLACE TEMP TABLE quality_data AS
@@ -54,6 +60,8 @@ createTablesForSampleQuality <- function() {
           {`obs_id`} AS obs_id,
           {`obs_time`} AS time,
           {`obs_patient`} AS patient,
+          {`obs_reference_high`} AS ref_high,
+          {`obs_reference_low`} AS ref_low,
           {`obs_interpretation`} AS interpretation,
           {basedOn_expr} AS basedon
         FROM read_csv_auto({path},{types_clause})
@@ -163,6 +171,8 @@ evaluateQualityLOINCs <- function() {
       q.unit            AS quality_unit,
       q.value_code      AS quality_value_code,
       q.value_code_system AS quality_value_system,
+      q.ref_high        AS quality_ref_high,
+      q.ref_low         AS quality_ref_low,
       q.interpretation AS quality_interpretation
     FROM potassium p
     INNER JOIN quality_data q
@@ -259,6 +269,8 @@ evaluateQualityLOINCs <- function() {
             q.unit            AS quality_unit,
             q.value_code      AS quality_value_code,
             q.value_code_system AS quality_value_system,
+            q.ref_high        AS quality_ref_high,
+            q.ref_low         AS quality_ref_low,
             q.interpretation AS quality_interpretation
           FROM potassium p
           INNER JOIN quality_data q
@@ -388,6 +400,25 @@ analyseQualityMatch <- function(join_table) {
 
     writeLogData("Used units per quality-loinc with median, mean, sd, p25, p75: ",
                  unit, kanonymity = FALSE)
+
+    # get count of available reference ranges
+    query <- glue_sql("
+      SELECT quality_loinc, quality_unit, COUNT(*) AS n,
+       COUNT(*) FILTER (WHERE quality_ref_high IS NOT NULL) AS n_ref_high,
+       COUNT(*) FILTER (WHERE quality_ref_low IS NOT NULL) AS n_ref_low
+      FROM {join_table}
+      GROUP BY quality_loinc, quality_unit
+    ", .con = con)
+
+    ref_counts <- dbGetQuery(con, query)
+
+    if (nrow(ref_counts) == 0 || (all(ref_counts$n_ref_high == 0)
+                                  && all(ref_counts$n_ref_low == 0))) {
+      writeLogData("No reference range information available")
+    } else {
+      writeLogData("Found reference ranges per LOINC: ")
+      writeLogData("LOINC/unit/count/count_ref_high/count_ref_low ", ref_counts)
+    }
   }
 
   # if code results are available get system and codes
