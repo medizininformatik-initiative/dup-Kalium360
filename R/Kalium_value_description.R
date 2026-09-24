@@ -50,8 +50,6 @@ createTablesForPotassiumAnalysis <- function() {
   # key informations
   path <- paste0(data_dir, "/", name_of_lab_csv)
 
-  # <- getVarcharTypeClause(c(obs_value_code, obs_method_code))
-
   types_clause <- getTypeClause(obs_value_code = "VARCHAR",
                                 obs_method_code = "VARCHAR",
                                 obs_value = "DOUBLE",
@@ -97,7 +95,6 @@ createTablesForPotassiumAnalysis <- function() {
   writeLogData("Observations with status cancelled or entered-in-error are
                excluded from further evaluation")
 
-
   # base view for timeline
   query <- glue_sql("
         CREATE OR REPLACE TEMP VIEW potassium_data_time AS
@@ -106,13 +103,13 @@ createTablesForPotassiumAnalysis <- function() {
           value,
           unit,
           obs_id,
-          time,
-          comparator
+          time
         FROM potassium
       ", .con = con)
 
   dbExecute(con, query)
   checkForDuplicates("potassium_data_time", "obs_id", "loinc")
+
 
   # view for the statistics part
   query <- glue_sql("
@@ -120,6 +117,7 @@ createTablesForPotassiumAnalysis <- function() {
           SELECT DISTINCT
           obs_id, loinc, value, unit, ref_low, ref_high,
           ref_high_unit, ref_low_unit, comparator,
+          value_compare,
           time, gender, age, pat_id, patient
         FROM potassium
       ", .con = con)
@@ -127,7 +125,6 @@ createTablesForPotassiumAnalysis <- function() {
   dbExecute(con, query)
   checkForDuplicates("potassium_part1", "obs_id", "loinc")
 }
-
 
 describeDataset <- function() {
 
@@ -249,8 +246,8 @@ calculateTimeline <- function() {
       unit,
       DATE_TRUNC('month', time::TIMESTAMP) AS month,
       COUNT(*)  AS n,
-      COUNT(*) FILTER (WHERE comparator IS NOT NULL OR value IS NULL) AS n_excluded,
-      MEDIAN(value) FILTER (WHERE comparator IS NULL AND value IS NOT NULL) AS median_value
+      COUNT(*) FILTER (WHERE value IS NULL) AS n_excluded,
+      MEDIAN(value) AS median_value
     FROM potassium_data_time
     GROUP BY loinc, unit, DATE_TRUNC('month', time::TIMESTAMP)
     ORDER BY loinc, unit, month
@@ -283,31 +280,6 @@ calculateStatisticsAll <- function () {
 
   count_measure <- dbGetQuery(con, query)
   writeLogData("Total measurements per gender: ", count_measure)
-
-  # get measurements with comparators
-  query <- glue_sql("
-      SELECT count(1) as n
-      FROM potassium_part1
-      WHERE comparator IS NOT NULL
-    ", .con = con)
-
-  count_comp <- dbGetQuery(con, query)$n
-  writeLogData("Measurements with comparator: ", count_comp)
-
-  if(count_comp > 0) {
-    writeLogData(paste0("Note: Measurements with a comparator-result will be ",
-                 "excluded from statistics and distribution"))
-
-    query <- glue_sql("
-      SELECT comparator, value, count(*) as n
-      FROM potassium_part1
-      WHERE comparator IS NOT NULL
-      GROUP BY comparator, value
-    ", .con = con)
-
-    comp_value <- dbGetQuery(con, query)
-    writeLogData("Found comparator/value/count: ", comp_value)
-  }
 
   # get min and max age
   range_query <- glue_sql("
@@ -478,24 +450,28 @@ calculateStatistics <- function(table_to_check) {
   # expressions to calculate the number of values under/in/above/without
   # the referencerange
 
+  # round the reference ranges in the data
+  ref_low_cls <- DBI::SQL(paste0("ROUND(ref_low, ", value_round_digits, ")"))
+  ref_high_cls <- DBI::SQL(paste0("ROUND(ref_high, ", value_round_digits, ")"))
+
   n_above_ref_expr <- DBI::SQL(glue_sql("
     COUNT(CASE WHEN value IS NOT NULL
                AND ref_high IS NOT NULL
-               AND value > ref_high THEN 1 END)",
+               AND value_compare > {ref_high_cls}  THEN 1 END)",
                                         .con = con))
 
   n_below_ref_expr <- DBI::SQL(glue_sql("
     COUNT(CASE WHEN value IS NOT NULL
                AND ref_low IS NOT NULL
-               AND value < ref_low THEN 1 END)",
+               AND value_compare < {ref_low_cls} THEN 1 END)",
                                         .con = con))
 
   n_within_ref_expr <- DBI::SQL(glue_sql("
     COUNT(CASE WHEN value IS NOT NULL
                AND ref_low IS NOT NULL
                AND ref_high IS NOT NULL
-               AND value >= ref_low
-               AND value <= ref_high THEN 1 END)",
+               AND value_compare >= {ref_low_cls}
+               AND value_compare <= {ref_high_cls} THEN 1 END)",
                                          .con = con))
 
   n_no_ref_expr <- DBI::SQL(glue_sql("
@@ -503,7 +479,6 @@ calculateStatistics <- function(table_to_check) {
                AND ref_low IS NULL
                AND ref_high IS NULL THEN 1 END)",
                                      .con = con))
-
 
   # calculate all the statistics and add the expressions defined above
   query <- glue_sql("
@@ -538,6 +513,8 @@ calculateStatistics <- function(table_to_check) {
     quantile_cont(value, 0.90) AS p90,
     quantile_cont(value, 0.95) AS p95,
     quantile_cont(value, 0.99) AS p99,
+    quantile_cont(value, 0.9995) AS p99_95,
+    quantile_cont(value, 0.0005) AS p0_05,
     SUM(CASE WHEN value IS NULL THEN 1 ELSE 0 END) AS n_na,
     {n_below_ref_expr} AS n_below_ref,
     {n_within_ref_expr} AS n_within_ref,
@@ -547,7 +524,6 @@ calculateStatistics <- function(table_to_check) {
     STRING_AGG(DISTINCT ref_low_unit,', ') AS reference_low_units,
     STRING_AGG(DISTINCT ref_high_unit,', ') AS reference_high_units
   FROM {`table_to_check`}
-  WHERE comparator IS NULL
   GROUP BY loinc, unit
   ", .con = con)
 
@@ -627,8 +603,8 @@ calculateDistribution <- function(table_to_check) {
       counts AS (
         SELECT
           CASE
-            WHEN value < {lower} THEN -1
-            WHEN value >= {upper} THEN 999999
+            WHEN value_compare < {lower} THEN -1
+            WHEN value_compare >= {upper} THEN 999999
             ELSE FLOOR(value * 10)
           END AS bin_key,
           COUNT(*) AS n
@@ -636,7 +612,6 @@ calculateDistribution <- function(table_to_check) {
         WHERE loinc = {loinc}
           AND unit = {unit}
           AND value IS NOT NULL
-          AND comparator IS NULL
         GROUP BY 1
       )
 

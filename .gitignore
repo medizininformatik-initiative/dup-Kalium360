@@ -6,6 +6,8 @@
 *.Rproj
 
 output
+input
 ignore*
 .positai
 test
+temp*

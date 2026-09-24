@@ -10,7 +10,7 @@ services:
     volumes:
       # R-Scripts
       - ./R:/app/R:ro
-      - ./main.R:/app/Main.R:ro
+      - ./Main.R:/app/Main.R:ro
       # config files
       - ./config.R:/app/config.R:ro
       - ./unit_conversion.csv:/app/unit_conversion.csv:ro

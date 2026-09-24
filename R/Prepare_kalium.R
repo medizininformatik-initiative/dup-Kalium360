@@ -17,6 +17,9 @@ prepareKalium <- function() {
   writeLogData("If possible remove the first data point")
   removeRepeatMeasurements("potassium")
 
+  writeLog("Check for comparators and rounding issues")
+  addCompareValue("potassium", value = TRUE, value_norm = FALSE)
+
   writeLog("Check for and remove implausible values")
   removeExtremValues("potassium")
 }
@@ -60,6 +63,9 @@ createBasePotassiumTable <- function() {
 
   query <- glue_sql("
       SELECT
+        COUNT(*) FILTER (WHERE gebdat_normalized IS NOT NULL
+                         AND LENGTH(TRIM(CAST(gebdat
+                         AS VARCHAR))) = 10) AS complete,
         COUNT(*) FILTER (WHERE gebdat IS NULL) AS missing,
         COUNT(*) FILTER (WHERE gebdat IS NOT NULL
                            AND gebdat_normalized IS NULL) AS unparseable,
@@ -87,8 +93,6 @@ createBasePotassiumTable <- function() {
 
   basedon_expr <- getColumnExpr(name_of_lab_csv, obs_basedon, "VARCHAR")
 
-  #types_clause <- getVarcharTypeClause(c(obs_value_code, obs_method_code))
-
   types_clause <- getTypeClause(obs_value_code = "VARCHAR",
                                 obs_method_code = "VARCHAR",
                                 obs_value = "DOUBLE",
@@ -97,7 +101,6 @@ createBasePotassiumTable <- function() {
                                 obs_reference_high = "DOUBLE",
                                 obs_reference_high_unit = "VARCHAR",
                                 obs_reference_low_unit = "VARCHAR")
-
 
   # core table with potassium patient join
   query <- glue_sql("
@@ -290,7 +293,7 @@ removeExtremValues <- function(table) {
   # is used to flag only extreme, implausible values.
   # The scaling factor 1.4826 makes MAD consistent with standard deviation.
 
-  cutoff <- 10
+  cutoff <- 15
 
   query <- glue_sql("
     WITH step1 AS (
@@ -375,6 +378,113 @@ removeExtremValues <- function(table) {
   }
 }
 
+addCompareValue <- function(table, value = TRUE, value_norm = TRUE) {
+
+  # Adding a value for save comparisons.
+  # Round all values to 3 digits. Some lab-systems are known to have
+  # problems with integer values. Rounding ensures that we have clean values
+  # for comparisons. Also if there is a comparator move the value up or
+  # down a bit.
+
+  # epsilon to shift comparator values
+  comparator_eps <- 1e-6
+
+  # Get the names of columns where (value / value_norm) is TRUE
+  source_cols <- c(value = value, value_norm = value_norm)
+  source_cols <- names(source_cols)[source_cols]
+
+  compare_cols <- paste0(source_cols, "_compare")
+
+  # Skip on wrong usage
+  if (length(source_cols) == 0 || any(compare_cols %in% DBI::dbListFields(con, table))) {
+    writeLogData("could not create comparator value, please check function call")
+    return()
+  }
+
+  # Create a CASE expression for each selected column
+  compare_exprs <- vapply(source_cols, function(col) {
+    compare_col <- paste0(col, "_compare")
+    as.character(glue_sql("
+      CASE c.comparator_norm
+        WHEN '<' THEN ROUND({`col`}, {value_round_digits}) - {comparator_eps}
+        WHEN '>' THEN ROUND({`col`}, {value_round_digits}) + {comparator_eps}
+        ELSE ROUND({`col`}, {value_round_digits})
+      END AS {`compare_col`}
+    ", .con = con))
+  }, character(1))
+
+  compare_sql <- DBI::SQL(paste(compare_exprs, collapse = ",\n"))
+
+  # create a table with value_compare and/or value_norm_compare
+  query <- glue_sql("
+    CREATE OR REPLACE TEMP TABLE {`table`} AS
+    SELECT
+      c.* EXCLUDE (comparator_norm),
+      {compare_sql}
+    FROM (
+      SELECT
+        *,
+        CASE
+          WHEN TRIM(comparator) IN ('<', '<=', '>', '>=')
+          THEN TRIM(comparator)
+          ELSE NULL
+        END AS comparator_norm
+      FROM {`table`}
+    ) c
+  ", .con = con)
+
+  dbExecute(con, query)
+
+  # log if there is a problem with to many decimal digits
+  query <- glue_sql("
+    SELECT
+      loinc,
+      unit,
+      COUNT(*) AS n,
+      COUNT(*) FILTER (WHERE ABS(value - ROUND(value, {value_round_digits})) > 1e-9)
+        AS n_off_grid
+    FROM {table}
+    WHERE value IS NOT NULL
+    GROUP BY loinc, unit
+    HAVING COUNT(*) FILTER (WHERE ABS(value - ROUND(value, {value_round_digits})) > 1e-9) > 0
+    ORDER BY loinc, unit
+  ", .con = con)
+
+  off_grid <- dbGetQuery(con, query)
+
+  if (nrow(off_grid) > 0) {
+    writeLogData(paste0("Note: There are values with more than ",
+                        value_round_digits, " decimals."))
+    writeLogData("Those are rounded for classification (loinc/unit/count/count_rounded): ",
+                 off_grid)
+  }
+
+  # log info about measurements with comparators
+  query <- glue_sql("
+      SELECT count(1) as n
+      FROM {table}
+      WHERE comparator IS NOT NULL
+    ", .con = con)
+
+  count_comp <- dbGetQuery(con, query)$n
+  writeLogData("Measurements with comparator: ", count_comp)
+
+  if(count_comp > 0) {
+
+    query <- glue_sql("
+      SELECT loinc, unit, comparator, value, count(*) as n
+      FROM {table}
+      WHERE comparator IS NOT NULL
+      GROUP BY loinc, unit, comparator, value
+    ", .con = con)
+
+    comp_value <- dbGetQuery(con, query)
+    writeLogData("Found comparator/value/count: ",
+                 comp_value, kanonymity = FALSE)
+    writeLogData("For comparisons comparator values are treated as
+        slightly below/above the given value.")
+  }
+}
 
 loadUnitConversionFile <- function() {
   # load unit_conversion.csv

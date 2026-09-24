@@ -123,6 +123,10 @@ k_value <- 5
 global_min_time <- as.POSIXct("2019-01-01 00:00:00", tz = "UTC")
 global_max_time <- as.POSIXct("2024-12-31 23:59:59", tz = "UTC")
 
+# Number of digits for rounding. This makes sure, that
+# values that slightly shifted (for technical reasons) are treated correctly.
+# raw values are never changed, this is just for comparisons.
+value_round_digits <- 3
 
 # default cut-offs
 # low and high are default normal ranges in case there is no reference range
@@ -132,20 +136,18 @@ global_max_time <- as.POSIXct("2024-12-31 23:59:59", tz = "UTC")
 
 
 kalium_ref <- list(low = 3.5, high = 5.0,
-                   low_0_1 = 3.5, high_0_1 = 6.5,
-                   low_1_2 = 3.5, high_1_2 = 5.5,
                    l1 = 3.0, l2 = 2.5, h1 = 5.5, h2 = 6.0, h3 = 6.5,
                    low_ext = 1.5, high_ext = 9.0)
 glucose_ref <- list(low = 70, high = 110,
-                    low_ext = 10, high_ext = 1500)
+                    low_ext = 10, high_ext = 800)
 bicarbonat_ref <- list(low = 21, high = 26,
-                       low_ext = 5, high_ext = 45)
+                       low_ext = 5, high_ext = 50)
 crea_ref <- list(low = NA_real_, high = NA_real_,
-                 low_ext = 0.1, high_ext = 40)
+                 low_ext = 0.2, high_ext = 18)
 pH_ref <- list(low = 7.35, high = 7.45,
                low_ext = 6.8, high_ext = 7.8)
-GFR_ref <- list(low = 90, high = NA_real_,
-                low_ext = 0, high_ext = 200)
+GFR_ref <- list(low = 60, high = NA_real_,
+                low_ext = 1, high_ext = 250)
 
 # matching window (hours) for each lab-result.
 lab_windows <- c(glucose = 6, bicarbonat = 6, pH = 6, crea = 48, GFR = 48)
@@ -180,8 +182,10 @@ LOINCs_glucose <- c('100746-7', '104597-0', '104598-8', '104655-6', '14743-9',
                     '41652-9', '41653-7', '47995-6', '51596-5', '72516-8',
                     '74774-1', '77135-2')
 
-LOINCs_kalium_serum <-('2823-3')
-LOINCs_kalium_blood <-('6298-4')
+LOINCs_kalium_serum <-c('2823-3','12812-4', '12813-2','29349-8',
+                        '51618-7', '77142-8')
+LOINCs_kalium_blood <-c('6298-4','32713-0', '39789-3', '39790-1', '32713-0',
+                        '41656-0','75940-7')
 
 OPS_codes <- c('8-853', '8-854', '8-855', '8-857')
 

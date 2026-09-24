@@ -4,7 +4,7 @@ evaluateCovariates <- function() {
   writeLogHeader("Part3: Evaluate Covariates", "This part evaluates if potassium
                  values can be matched to available covariates like further
                  lab-results medication, diagnosis and procedures and have an
-                 encounter context.")
+                 encounter context. Children under one year are excluded.")
 
   writeLog("Preparing potassium table")
 
@@ -70,18 +70,14 @@ evaluateCovariates <- function() {
     conditionEncounterTimeline()
   }
 
-
   writeLog("Evaluate concurrenty measurements in blood and serum")
   compare_serum_blood <- matchAndEvaluateSerumBlood(availability, time_results$availability)
 
-
   writeLog("Running descriptive statistics")
-  statistic_counts <- descriptiveStatistic(availability, time_results$availability)
-
+  statistic_counts <- descriptiveStatisticMain(availability, time_results$availability)
 
   writeLog("Running linear regression")
   regression_results <- linearRegression(availability, time_results$availability)
-
 
   #####################
 
@@ -100,7 +96,6 @@ evaluateCovariates <- function() {
   if (!is.null(compare_serum_blood)) {
     write.csv(compare_serum_blood, file = paste0(output_dir, "/compareSerumBlood.csv"))
   }
-
 }
 
 
@@ -279,7 +274,7 @@ assignEncounterContext <- function(encounter_available) {
   # round numbers to two digits
   num_cols <- sapply(av_duration, is.numeric)
   av_duration[num_cols] <- round(av_duration[num_cols], 2)
-  writeLogData("Average (mean, median, sd, min, max, q1, q3) duration of IMP encounter: ",
+  writeLogData("Average (mean, median, sd, min, max, q1, q3) duration of IMP encounter (days): ",
                av_duration, kanonymity = FALSE)
 
   # Summary: IMP vs AMB counts
@@ -446,6 +441,23 @@ calculateTimelineCo <- function(table_to_check, all_months) {
   return(result)
 }
 
+# Helper function to count potassium-rows with at least one match
+countMeasurementsWithMatch <- function(flag_cols) {
+
+  sum_expr <- paste(
+    glue::glue_sql("COALESCE({`flag_cols`}, 0)", .con = con),
+    collapse = " + "
+  )
+
+  query <- glue_sql("
+    SELECT COUNT(*) AS n
+    FROM potassium_result
+    WHERE ({SQL(sum_expr)}) > 0
+  ", .con = con)
+
+  dbGetQuery(con, query)
+}
+
 matchMedication <- function() {
 
   # builds sql that calculates for each potassium timestamp if there was
@@ -510,6 +522,9 @@ matchMedication <- function() {
       "24 hours before the potassium measurement"))
   writeLogData("Total matches with medication: ", med_counts)
 
+  writeLogData("Measurements with at least one medication match: ",
+               countMeasurementsWithMatch(atc_cols))
+
   query <- glue_sql("
     SELECT count(*)
     FROM potassium_result
@@ -539,6 +554,9 @@ matchLab <- function() {
   combos$window_hours <- lab_windows[combos$label]
 
   # build SQL for each combination
+  # Note: lab values without result never match l.result = {result}.
+  # So they are not counted in any of the flags.
+
   flag_fragments <- mapply(function(label, result, window_hours) {
     colname <- paste0(label, "_", result)
     interval_sql <- sprintf("INTERVAL '%d hours'", window_hours)
@@ -563,6 +581,7 @@ matchLab <- function() {
   # if there are multiple choose the one that is closest to the potassium
   # measurement. If there are still multiple choose by that order:
   # result: N than L than H. If still unclear choose random.
+  # The value does not need a result(N/L/H). Result = NULL comes last (ELSE 4).
 
   value_fragments <- mapply(function(label, window_hours) {
 
@@ -624,6 +643,9 @@ matchLab <- function() {
                is +/- hours from potassium measurement (as defined in config)")
 
   writeLogData("Total matches with lab: ", lab_counts)
+
+  writeLogData("Measurements with at least one lab match: ",
+               countMeasurementsWithMatch(new_cols))
 }
 
 matchProcedures <- function() {
@@ -704,6 +726,10 @@ matchProcedures <- function() {
                of measurement, dialysis with clear timestamps and measurement during dialysis,
                and dialysis with uncertain timestamps")
   writeLogData("Total matches with dialysis (during/before/uncertain): ", dialysis_counts)
+
+  writeLogData("Measurements with at least one dialysis match: ",
+               countMeasurementsWithMatch(c("dialyse_during", "dialyse_before",
+                                            "dialyse_unclear")))
 }
 
 matchConditions <- function(){
@@ -727,11 +753,11 @@ matchConditions <- function(){
               AND (
                 (p.enc_class = 'IMP'
                   AND c.time::TIMESTAMP >= p.enc_start::TIMESTAMP
-                  AND c.time::TIMESTAMP <= p.enc_end::TIMESTAMP)
+                  AND c.time::TIMESTAMP <= p.enc_end::TIMESTAMP + INTERVAL '14 days')
                 OR
                 (p.enc_class = 'AMB'
                   AND c.time::TIMESTAMP >= DATE_TRUNC('day', p.time::TIMESTAMP)
-                  AND c.time::TIMESTAMP < DATE_TRUNC('day', p.time::TIMESTAMP) + INTERVAL '1 day')
+                  AND c.time::TIMESTAMP <= DATE_TRUNC('day', p.time::TIMESTAMP) + INTERVAL '14 days')
               )
               AND ({cond})
           ) THEN 1 ELSE 0 END AS {name}"
@@ -776,16 +802,20 @@ matchConditions <- function(){
   ", .con = con)
 
   writeLogData("A condition is considered a match if the recorded time is inside
-               the assigned encounter. Outpatient contacts are considered as
+               the assigned encounter or up to 14 days after. Outpatient contacts are considered as
                one-day encounters")
   count <- dbGetQuery(con, query)
-  writeLogData(paste0("Total matched conditions: "), count)
+  writeLogData("Total matched conditions: ", count)
+
+  writeLogData("Measurements with at least one condition match: ",
+               countMeasurementsWithMatch(cond_cols))
 }
 
 conditionEncounterTimeline <- function() {
 
-  # create a view that gives only finished encounters. And all amb
-  # encounters a set to period_start = period_end
+  # create time windows for each encounter
+  # IMP/SS: period_start - period_end
+  # AMB: calender day of period_start (00:00 - 24:00)
   query <- glue_sql("
     CREATE OR REPLACE TEMP VIEW encounter_filtered AS
     SELECT
@@ -795,88 +825,89 @@ conditionEncounterTimeline <- function() {
       CASE
         WHEN class = 'AMB' THEN period_start::TIMESTAMP
         ELSE period_end::TIMESTAMP
-      END AS period_end
+      END AS period_end,
+      CASE
+        WHEN class = 'AMB' THEN date_trunc('day', period_start::TIMESTAMP)::TIMESTAMP
+        ELSE period_start::TIMESTAMP
+      END AS win_start,
+      CASE
+        WHEN class = 'AMB' THEN date_trunc('day', period_start::TIMESTAMP)::TIMESTAMP + INTERVAL 1 DAY
+        ELSE period_end::TIMESTAMP
+      END AS win_end
     FROM encounter_main
     WHERE NOT (class IN ('IMP', 'SS') AND period_end IS NULL)
   ", .con = con)
   dbExecute(con, query)
 
-  # view on conditions with only necessary items
+  # create a view with all relevant conditions
   query <- glue_sql("
-  CREATE OR REPLACE TEMP VIEW conditions_in_range AS
-  SELECT
-  con_id,
-  time::TIMESTAMP  AS time,
-  patient
-  FROM conditions
-  WHERE time >= {global_min_time}
-    AND time <= {global_max_time}
+    CREATE OR REPLACE TEMP VIEW conditions_in_range AS
+    SELECT
+      con_id,
+      time::TIMESTAMP AS time,
+      patient
+    FROM conditions
+    WHERE time >= {global_min_time}
+      AND time <= {global_max_time}
   ", .con = con)
   dbExecute(con, query)
 
+  # sort all conditions to encounter time buckets.
+  # IMP encounters get a higher priority compared to AMB encounters
+  # for AMB only day1 and after is relevant (because it is one day only)
   query <- glue_sql("
     CREATE OR REPLACE TEMP VIEW condition_timing_all AS
     SELECT
-      e.class,
-      e.patient,
-      e.period_start,
-      e.period_end,
-      c.con_id,
-      c.time AS condition_time,
-      CASE
-        WHEN c.time >= e.period_start
-            AND c.time <  e.period_start + INTERVAL 1 DAY
-          THEN 'day1'
-        WHEN c.time >= e.period_end - INTERVAL 1 DAY
-            AND c.time <  e.period_end
-          THEN 'end_date'
-        WHEN c.time >= e.period_start + INTERVAL 1 DAY
-             AND c.time <  e.period_start + INTERVAL 3 DAY
-             AND c.time <  e.period_end
-          THEN 'day2_3'
-        WHEN c.time >= e.period_start + INTERVAL 3 DAY
-             AND c.time <  e.period_end
-          THEN 'day4_to_end'
-        WHEN c.time >= e.period_end
-             AND c.time <  e.period_end + INTERVAL 3 DAY
-          THEN 'end_to_3d_after'
-        WHEN c.time >= e.period_end + INTERVAL 3 DAY
-             AND c.time <  e.period_end + INTERVAL 7 DAY
-          THEN '3d_to_7d_after'
-      ELSE 'remaining'
-      END AS time_bucket,
-      CASE
-        WHEN c.time >= e.period_start
-             AND c.time <  e.period_start + INTERVAL 1 DAY
-          THEN 1
-        WHEN c.time >= e.period_end - INTERVAL 1 DAY
-            AND c.time <  e.period_end
-          THEN 2
-        WHEN c.time >= e.period_start + INTERVAL 1 DAY
-             AND c.time <  e.period_start + INTERVAL 3 DAY
-             AND c.time <  e.period_end
-          THEN 3
-        WHEN c.time >= e.period_start + INTERVAL 3 DAY
-             AND c.time <  e.period_end
-          THEN 4
-        WHEN c.time >= e.period_end
-             AND c.time <  e.period_end + INTERVAL 3 DAY
-          THEN 5
-        WHEN c.time >= e.period_end + INTERVAL 3 DAY
-             AND c.time <  e.period_end + INTERVAL 7 DAY
-          THEN 6
-      ELSE 7
+      b.*,
+      CASE b.time_bucket
+        WHEN 'day1'            THEN 1
+        WHEN 'end_date'        THEN 2
+        WHEN 'day2_3'          THEN 3
+        WHEN 'day4_to_end'     THEN 4
+        WHEN 'end_to_3d_after' THEN 5
+        WHEN '3d_to_7d_after'  THEN 6
+        WHEN '7d_to_14d_after' THEN 7
+        ELSE 8
       END AS bucket_priority,
-      CASE
-        WHEN e.class IN ('IMP', 'SS') THEN 1
-        ELSE 2
-      END AS class_priority
-    FROM conditions_in_range c
-    JOIN encounter_filtered e
-      ON c.patient = e.patient
+      CASE WHEN b.class IN ('IMP', 'SS') THEN 1 ELSE 2 END AS class_priority
+    FROM (
+      SELECT
+        e.class,
+        e.patient,
+        e.period_start,
+        e.period_end,
+        c.con_id,
+        c.time AS condition_time,
+        CASE
+          WHEN c.time < LEAST(e.win_start + INTERVAL 1 DAY, e.win_end)
+            THEN 'day1'
+          WHEN e.class <> 'AMB'
+               AND c.time >= e.win_end - INTERVAL 1 DAY
+               AND c.time <  e.win_end
+            THEN 'end_date'
+          WHEN e.class <> 'AMB'
+               AND c.time < LEAST(e.win_start + INTERVAL 3 DAY, e.win_end)
+            THEN 'day2_3'
+          WHEN e.class <> 'AMB'
+               AND c.time < e.win_end
+            THEN 'day4_to_end'
+          WHEN c.time < e.win_end + INTERVAL 3 DAY
+            THEN 'end_to_3d_after'
+          WHEN c.time < e.win_end + INTERVAL 7 DAY
+            THEN '3d_to_7d_after'
+          WHEN c.time < e.win_end + INTERVAL 14 DAY
+            THEN '7d_to_14d_after'
+          ELSE 'remaining'
+        END AS time_bucket
+      FROM conditions_in_range c
+      JOIN encounter_filtered e
+        ON c.patient = e.patient
+       AND c.time >= e.win_start
+    ) b
   ", .con = con)
   dbExecute(con, query)
 
+  # select the best match for each condition
   query <- glue_sql("
     CREATE OR REPLACE TEMP VIEW condition_timing AS
     SELECT class, patient, con_id, condition_time, time_bucket
@@ -884,11 +915,18 @@ conditionEncounterTimeline <- function() {
       SELECT *,
         ROW_NUMBER() OVER (
           PARTITION BY con_id
-          ORDER BY bucket_priority ASC,
-           class_priority ASC,
-           ABS(EPOCH(condition_time) - EPOCH(
-             CASE WHEN bucket_priority IN (2,5,6) THEN period_end ELSE period_start END
-         )) ASC
+          ORDER BY
+            bucket_priority ASC,
+            class_priority ASC,
+            ABS(EPOCH(condition_time) - EPOCH(
+              CASE
+                WHEN time_bucket IN ('end_date', 'end_to_3d_after',
+                                     '3d_to_7d_after',  '7d_to_14d_after',
+                                     'remaining')
+                  THEN period_end
+                ELSE period_start
+              END
+            )) ASC
         ) AS rn
       FROM condition_timing_all
     )
@@ -896,6 +934,7 @@ conditionEncounterTimeline <- function() {
   ", .con = con)
   dbExecute(con, query)
 
+  # count result and write it to log
   result <- dbGetQuery(con, glue_sql("
     SELECT class, time_bucket, COUNT(*) AS anzahl
     FROM condition_timing
@@ -1010,7 +1049,6 @@ matchNextPotassium <- function() {
                result, kanonymity = FALSE)
 
   # compare measurement within 6h to detect implausible measurements
-
   count_query <- glue_sql("
      SELECT
       COUNT(*) AS n
@@ -1019,15 +1057,18 @@ matchNextPotassium <- function() {
   ", .con = con)
   count_6h <- dbGetQuery(con, count_query)
 
-  writeLogData("Total next measurement within 6h: ")
-  writeLogData(count_6h)
-
+  writeLogData("Total next measurement within 6h: ", count_6h)
 
   stats_query <- glue_sql("
      SELECT
       result_detail,
       next_result_detail,
-      COUNT(*) AS count
+      COUNT(*) AS count,
+      AVG(next_hours) AS avg_hours,
+      MEDIAN(next_hours) AS median_hours,
+      STDDEV(next_hours) AS sd_hours,
+      QUANTILE_CONT(next_hours, 0.25) AS p25,
+      QUANTILE_CONT(next_hours, 0.75) AS p75
     FROM potassium_result
     WHERE next_hours <= 6
     GROUP BY result_detail, next_result_detail
@@ -1125,8 +1166,9 @@ matchMedicationAfter <- function() {
   ", .con = con)
   med_after_counts <- dbGetQuery(con, query)
 
-
   writeLogData("Total matches after: ", med_after_counts)
+  writeLogData("Measurements with at least one after match: ",
+               countMeasurementsWithMatch(after_cols))
 }
 
 matchAndEvaluateSerumBlood <- function(availability, time_availability) {

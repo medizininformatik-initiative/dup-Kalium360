@@ -17,7 +17,7 @@ source("./R/Evaluate_covariates.R")
 source("./R/Loading.R")
 source("./R/Statistic.R")
 
-version <- "0.81"
+version <- "0.82"
 
 startKalium <- function() {
 
@@ -52,7 +52,8 @@ startKalium <- function() {
   unlink(file.path(working_dir, "temp.duckdb"))
 
   # create a duckdb and establish a connection
-  con <<- dbConnect(duckdb(), dbdir = file.path(working_dir, "temp.duckdb"))
+  con <<- dbConnect(duckdb(shared_home = FALSE),
+                    dbdir = file.path(working_dir, "temp.duckdb"))
 
   tempdir <- paste0(working_dir, "/temp_Duckdb")
   DBI::dbExecute(con, glue_sql("SET temp_directory = {tempdir};", .con = con))
@@ -108,6 +109,4 @@ writeDataDirsToEnv <- function() {
 
 }
 
-
 startKalium()
-

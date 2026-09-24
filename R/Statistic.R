@@ -1,8 +1,40 @@
-descriptiveStatistic <- function(availability, time_availability) {
+
+descriptiveStatisticMain <- function(availability, time_availability) {
 
   writeLogData("Counting the cooccurence of low/high potassium
                 results with available covariates. Only
                 time windows with reasonable available data are considered")
+
+  result_1 <- descriptiveStatistic(availability, time_availability,
+                                   age_and = "", result_col = "result")
+  result_2 <- descriptiveStatistic(availability, time_availability,
+                                   age_and = "", result_col = "result_detail")
+
+  writeLogData("Cohort all done")
+
+  result_3 <- descriptiveStatistic(availability, time_availability,
+                                   age_and = "AND age >= 18", result_col = "result")
+  writeLogData("Cohort adults done")
+
+  result_4 <- descriptiveStatistic(availability, time_availability,
+                                   age_and = "AND age < 18", result_col = "result")
+  writeLogData("Cohort children done")
+
+  result_5 <- descriptiveStatistic(availability, time_availability,
+                                   age_and = "AND gender = 'female'", result_col = "result")
+  writeLogData("Cohort female done")
+
+  result_6 <- descriptiveStatistic(availability, time_availability,
+                                   age_and = "AND gender = 'male'", result_col = "result")
+  writeLogData("Cohort male done")
+
+  all_results <- list(result_1, result_2, result_3, result_4, result_5, result_6)
+
+  dplyr::bind_rows(all_results)
+}
+
+descriptiveStatistic <- function(availability, time_availability,
+                                 age_and, result_col) {
 
   all_results <- list()
 
@@ -10,16 +42,17 @@ descriptiveStatistic <- function(availability, time_availability) {
   results <- list()
 
   # get counts of next potassium measurement result (L/N/H or no result)
-  count_next <- function(extra_where = "", kohorte = "all", followup_time = 120) {
+  count_next <- function(extra_and = "", kohorte = "all", followup_time = 120) {
 
-    # convert parameter extra_and in SQL
-    extra_where_sql <- DBI::SQL(extra_where)
+    # convert parameter extra_and and age_and in SQL
+    extra_and_sql <- DBI::SQL(extra_and)
+    age_and_sql <- DBI::SQL(age_and)
 
     # next measurements older than 5 days are not counted as follow-up!
     query <- glue::glue_sql(
       " WITH base AS (
           SELECT
-            result,
+            {`result_col`},
             CASE
               WHEN next_flag = 0 THEN 'next_no'
               WHEN next_flag = 1 AND next_hours > {followup_time} THEN 'next_no'
@@ -28,51 +61,55 @@ descriptiveStatistic <- function(availability, time_availability) {
               WHEN next_result = 'L' THEN 'next_L'
             END AS gruppe
           FROM potassium_result p
-          {extra_where_sql}
+          WHERE 1 = 1
+         {extra_and_sql}
+         {age_and_sql}
         )
         SELECT
           gruppe,
-          result,
+          {`result_col`},
           COUNT(*) AS n_match,
-          SUM(COUNT(*)) OVER (PARTITION BY result) - COUNT(*) AS n_no_match,
-          SUM(COUNT(*)) OVER (PARTITION BY result) AS n_gesamt,
+          SUM(COUNT(*)) OVER (PARTITION BY {`result_col`}) - COUNT(*) AS n_no_match,
+          SUM(COUNT(*)) OVER (PARTITION BY {`result_col`}) AS n_gesamt,
           {kohorte} AS kohorte
         FROM base
-        GROUP BY gruppe, result
-        ORDER BY result, gruppe
+        GROUP BY gruppe, {`result_col`}
+        ORDER BY {`result_col`}, gruppe
     ",
       .con = con
     )
-
-    dbGetQuery(con, query)
+    result <- dbGetQuery(con, query)
+    return(result)
   }
 
-  counts_all <- count_next("", kohorte = "5days_all")
+  counts_all <- count_next(extra_and = "", kohorte = "5days_all")
 
   # next measurements within 2 and 2-48 hours
-  counts_2h <- count_next(extra_where = "", kohorte = "2hours_all", followup_time = 2)
+  counts_2h <- count_next(extra_and = "", kohorte = "2hours_all",
+                          followup_time = 2)
 
-  counts_48h <- count_next(extra_where = "", kohorte = "48hours_all", followup_time = 48)
+  counts_48h <- count_next(extra_and = "", kohorte = "48hours_all",
+                           followup_time = 48)
 
   # same encounter
-  counts_same_enc <- count_next("WHERE same_encounter = 1", kohorte = "same_encounter")
+  counts_same_enc <- count_next("AND same_encounter = 1", kohorte = "same_encounter")
 
   # only first of encounter
-  counts_first <- count_next("WHERE first = 1", kohorte = "only_first_5d")
+  counts_first <- count_next("AND first = 1", kohorte = "only_first_5d")
 
   # bind all together
-  all_next <- dplyr::bind_rows(counts_all, counts_2h, counts_48h, counts_same_enc, counts_first)
+  next_combined <- dplyr::bind_rows(counts_all, counts_2h, counts_48h, counts_same_enc, counts_first)
 
-  # apply k-Anonymity (note as for lab at this point it is no real k-anonymization)
-  counts_combined <- applyKAnonymity(all_next,
-                                     "n_match", c("gruppe","kohorte","result"))
+  # apply k-Anonymity
+  next_combined <- applyKAnonymity(next_combined, c("n_match", "n_no_match"), c("gruppe","kohorte",result_col))
 
   # add a label
-  counts_combined$source <- "next_measurement"
-  # add it to all_results
-  all_results <- c(all_results, list(counts_combined))
-  # write results als .csv
-  writeLogData("Result of next measurement done.")
+  next_combined$source <- paste0("next_measurement ", result_col, " ", age_and)
+
+  # run for result as well as result_detail and add it to all_results
+  all_results <- c(all_results, list(next_combined))
+
+  #writeLogData("Result of next measurement done.")
 
 
   if(availability$medication) {
@@ -93,6 +130,7 @@ descriptiveStatistic <- function(availability, time_availability) {
 
       # convert parameter extra_and in SQL
       extra_and_sql <- DBI::SQL(extra_and)
+      age_and_sql <- DBI::SQL(age_and)
 
       # init results
       results <- list()
@@ -102,7 +140,7 @@ descriptiveStatistic <- function(availability, time_availability) {
         query <- glue::glue_sql(
           "SELECT
              {col}  AS gruppe,
-             result,
+             {`result_col`},
              SUM({`col`} )     AS n_match,
              SUM(1 - {`col`} ) AS n_no_match,
              COUNT(*)   AS n_gesamt,
@@ -110,8 +148,9 @@ descriptiveStatistic <- function(availability, time_availability) {
            FROM potassium_result p
            WHERE p.time::TIMESTAMP >= {t_min}::TIMESTAMP
            AND p.time::TIMESTAMP < {t_max}::TIMESTAMP
-           {extra_and_sql}
-           GROUP BY p.result"
+          {extra_and_sql}
+          {age_and_sql}
+           GROUP BY p.{`result_col`}"
           , .con = con)
 
         results[[col]] <- dbGetQuery(con, query)
@@ -124,25 +163,29 @@ descriptiveStatistic <- function(availability, time_availability) {
     counts_alle <- count_atc()
 
     # get the counts for IMP only
-    counts_no_amb <- count_atc("AND NOT enc_class = 'AMB'", kohorte = "without_AMB")
+    counts_no_amb <- count_atc("AND NOT enc_class = 'AMB'",
+                               kohorte = "without_AMB")
 
     # get the counts for first measurements only
     counts_first <- count_atc("AND first = 1", kohorte = "only_first")
 
     # get the counts for first measurements that are also the only match
-    counts_alone <- count_atc("AND first = 1 AND alone_med = 1", kohorte = "first_alone")
+    counts_alone <- count_atc("AND first = 1 AND alone_med = 1",
+                              kohorte = "first_alone")
 
     # bind all together
-    counts_combined <- bind_rows(counts_alle, counts_no_amb, counts_first, counts_alone)
+    medication_combined <- bind_rows(counts_alle, counts_no_amb, counts_first, counts_alone)
 
     # apply k-Anonymity
-    counts_combined <- applyKAnonymity(counts_combined,
-                                       "n_match", c("gruppe","kohorte","result"))
+    medication_combined <- applyKAnonymity(medication_combined,
+                                           c("n_match", "n_no_match"), c("gruppe","kohorte",result_col))
 
     # add a label
-    counts_combined$source <- "medication"
-    # add it to all_results
-    all_results <- c(all_results, list(counts_combined))
+    medication_combined$source <- paste0("medication ", result_col, " ",age_and)
+
+    # do it for each result type and add it to all_results
+    all_results <- c(all_results, list(medication_combined))
+
 
     # Evaluate medication that is given AFTER the measurement
 
@@ -151,12 +194,14 @@ descriptiveStatistic <- function(availability, time_availability) {
 
     count_atc_after <- function(extra_and = "", kohorte = "all") {
       extra_and_sql <- DBI::SQL(extra_and)
+      age_and_sql <- DBI::SQL(age_and)
+
       results <- list()
       for (col in after_cols) {
         query <- glue::glue_sql(
           "SELECT
              {col}  AS gruppe,
-             result,
+             {`result_col`},
              SUM({`col`} )     AS n_match,
              SUM(1 - {`col`} ) AS n_no_match,
              COUNT(*)   AS n_gesamt,
@@ -164,8 +209,9 @@ descriptiveStatistic <- function(availability, time_availability) {
            FROM potassium_result p
            WHERE p.time::TIMESTAMP >= {t_min}::TIMESTAMP
            AND p.time::TIMESTAMP < {t_max}::TIMESTAMP
-           {extra_and_sql}
-           GROUP BY p.result"
+          {extra_and_sql}
+          {age_and_sql}
+           GROUP BY p.{`result_col`}"
           , .con = con)
 
         results[[col]] <- dbGetQuery(con, query)
@@ -182,13 +228,13 @@ descriptiveStatistic <- function(availability, time_availability) {
 
     # apply k-Anonymity
     counts_after_combined <- applyKAnonymity(counts_after_combined,
-                                             "n_match", c("gruppe","kohorte","result"))
+                                             c("n_match", "n_no_match"), c("gruppe", "kohorte", result_col))
 
-    counts_after_combined$source <- "medication_after"
+    counts_after_combined$source <- paste0("medication_after ", result_col, " ", age_and)
+
     all_results <- c(all_results, list(counts_after_combined))
 
-    # write results als .csv
-    writeLogData("Medication done")
+    #writeLogData("Medication done")
   }
 
   if (availability$lab) {
@@ -199,10 +245,11 @@ descriptiveStatistic <- function(availability, time_availability) {
     # init results
     results <- list()
 
-    count_lab <- function(extra_where = "", kohorte = "lab") {
+    count_lab <- function(extra_and = "", kohorte = "lab") {
 
       # convert parameter extra_and in SQL
-      extra_where_sql <- DBI::SQL(extra_where)
+      extra_and_sql <- DBI::SQL(extra_and)
+      age_and_sql <- DBI::SQL(age_and)
 
       # get the count for each column in lab_cols and combine them in results
       for (key in lab_keys) {
@@ -216,17 +263,19 @@ descriptiveStatistic <- function(availability, time_availability) {
           query <- glue::glue_sql(
             "SELECT
              {col}  AS gruppe,
-             result,
+             {`result_col`},
              SUM({`col`} )     AS n_match,
              SUM({`normal_col`} ) AS n_normal,
              SUM(
                CASE WHEN {`high_col`} + {`normal_col`} + {`low_col`} > 0
                     THEN 1 ELSE 0 END
-             )                    AS n_measured,
+             ) AS n_measured,
              {kohorte}  AS kohorte
            FROM potassium_result p
-          {extra_where_sql}
-           GROUP BY p.result"
+           WHERE 1 = 1
+            {extra_and_sql}
+            {age_and_sql}
+           GROUP BY p.{`result_col`}"
             , .con = con)
 
           results[[col]] <- dbGetQuery(con, query)
@@ -234,15 +283,16 @@ descriptiveStatistic <- function(availability, time_availability) {
       }
 
       result_lab <- bind_rows(results)
+      return(result_lab)
     }
 
     result_lab_all <- count_lab()
     # note: first = 1 is only for inpatient data.
-    result_lab_first <- count_lab("WHERE first = 1", "lab_only_first")
+    result_lab_first <- count_lab("AND first = 1", "lab_only_first")
 
     # first and amb. For lab values amb is also relevant if there are
     # measurements
-    result_lab_first_or_amb <- count_lab("WHERE (first = 1 OR enc_class = 'AMB')",
+    result_lab_first_or_amb <- count_lab("AND (first = 1 OR enc_class = 'AMB')",
                                          "lab_first_or_amb")
 
     # bind all together
@@ -250,12 +300,13 @@ descriptiveStatistic <- function(availability, time_availability) {
 
     # apply k-Anonymity (note: no real k-anonymization because of matrix)
     result_lab <- applyKAnonymity(counts_comb_lab,
-                                  "n_match", c("gruppe", "kohorte", "result"))
+                                  c("n_match", "n_normal"), c("gruppe", "kohorte", result_col))
 
-    result_lab$source <- "lab"
+    result_lab$source <- paste0("lab ", result_col, " ", age_and)
+
     all_results <- c(all_results, list(result_lab))
-    # write results als .csv
-    writeLogData("Lab done")
+
+    #writeLogData("Lab done")
   }
 
   if (availability$procedures) {
@@ -271,12 +322,14 @@ descriptiveStatistic <- function(availability, time_availability) {
 
     count_procedures <- function(extra_and = "", kohorte = "all") {
       extra_and_sql <- DBI::SQL(extra_and)
+      age_and_sql <- DBI::SQL(age_and)
+
       results <- list()
       for (col in proc_cols) {
         query <- glue::glue_sql(
           "SELECT
            {col}      AS gruppe,
-           result,
+           {`result_col`},
            SUM({`col`})     AS n_match,
            SUM(1 - {`col`}) AS n_no_match,
            COUNT(*)   AS n_gesamt,
@@ -284,8 +337,9 @@ descriptiveStatistic <- function(availability, time_availability) {
          FROM potassium_result p
          WHERE p.time::TIMESTAMP >= {t_min}::TIMESTAMP
          AND p.time::TIMESTAMP < {t_max}::TIMESTAMP
-         {extra_and_sql}
-         GROUP BY p.result"
+          {extra_and_sql}
+          {age_and_sql}
+         GROUP BY p.{`result_col`}"
           , .con = con)
         results[[col]] <- dbGetQuery(con, query)
       }
@@ -296,23 +350,23 @@ descriptiveStatistic <- function(availability, time_availability) {
     # all encounters
     counts_alle <- count_procedures()
     # only IMP
-    counts_no_amb <- count_procedures("AND NOT enc_class = 'AMB'", kohorte = "without_AMB")
+    counts_no_amb <- count_procedures("AND NOT enc_class = 'AMB'",
+                                      kohorte = "without_AMB")
     # only IMP and only first potassium_measurement
-    counts_first <- count_procedures(
-      "AND NOT enc_class = 'AMB' AND first = 1",
-      kohorte = "without_AMB_first"
-    )
+    counts_first <- count_procedures("AND NOT enc_class = 'AMB' AND first = 1",
+      kohorte = "without_AMB_first")
 
     counts_combined <- bind_rows(counts_alle, counts_no_amb, counts_first)
 
     # apply k-anonymity
     counts_combined <- applyKAnonymity(counts_combined,
-                                       "n_match", c("gruppe", "kohorte", "result"))
+                                       c("n_match", "n_no_match"), c("gruppe", "kohorte", result_col))
 
-    counts_combined$source <- "procedures"
+    counts_combined$source <- paste0("procedures ", result_col, " ", age_and)
+
     all_results <- c(all_results, list(counts_combined))
 
-    writeLogData("Procedures done")
+    #writeLogData("Procedures done")
   }
 
   if(availability$conditions) {
@@ -325,9 +379,12 @@ descriptiveStatistic <- function(availability, time_availability) {
     t_max <- format(max_verfügbar + months(1), "%Y-%m-01")
     # get icd col names
     cond_cols <- unique(icd_groups$name)
+
     count_condition <- function(extra_and = "", kohorte = "all") {
       # convert parameter extra_and in SQL
       extra_and_sql <- DBI::SQL(extra_and)
+      age_and_sql <- DBI::SQL(age_and)
+
       # init results
       results <- list()
       # get the count for each condition group in cond_cols and combine them in results
@@ -335,7 +392,7 @@ descriptiveStatistic <- function(availability, time_availability) {
         query <- glue::glue_sql(
           "SELECT
              {col}  AS gruppe,
-             result,
+             {`result_col`},
              SUM({`col`} )     AS n_match,
              SUM(1 - {`col`} ) AS n_no_match,
              COUNT(*)   AS n_gesamt,
@@ -343,14 +400,16 @@ descriptiveStatistic <- function(availability, time_availability) {
            FROM potassium_result p
            WHERE p.time::TIMESTAMP >= {t_min}::TIMESTAMP
            AND p.time::TIMESTAMP < {t_max}::TIMESTAMP
-           {extra_and_sql}
-           GROUP BY p.result"
+          {extra_and_sql}
+          {age_and_sql}
+           GROUP BY p.{`result_col`}"
           , .con = con)
         results[[col]] <- dbGetQuery(con, query)
       }
       results <- bind_rows(results)
       return (results)
     }
+
     # get the counts for all cases (AMB and IMP)
     counts_alle <- count_condition()
     # get the counts for IMP only
@@ -358,18 +417,20 @@ descriptiveStatistic <- function(availability, time_availability) {
     # get the counts for first measurements only
     counts_first <- count_condition("AND first = 1", kohorte = "only_first")
     # get the counts for first measurements that are also the only matched condition
-    counts_alone <- count_condition("AND first = 1 AND alone_cond = 1", kohorte = "first_alone")
+    counts_alone <- count_condition("AND first = 1 AND alone_cond = 1",
+                                    kohorte = "first_alone")
     # bind all together
     counts_combined <- bind_rows(counts_alle, counts_no_amb, counts_first)
+
     # apply k-Anonymity
     counts_combined <- applyKAnonymity(counts_combined,
-                                       "n_match", c("gruppe","kohorte","result"))
+                                       c("n_match", "n_no_match"), c("gruppe","kohorte",result_col))
 
-    counts_combined$source <- "conditions"
+    counts_combined$source <- paste0("conditions ", result_col, " ", age_and)
 
     all_results <- c(all_results, list(counts_combined))
-    # write results als .csv
-    writeLogData("Conditions done")
+
+    #writeLogData("Conditions done")
   }
 
   final_counts <- bind_rows(all_results)
@@ -382,7 +443,9 @@ descriptiveStatistic <- function(availability, time_availability) {
 linearRegression <- function(availability, time_availability) {
 
   writeLogData("Measurements with unknown gender or age are excluded. Only
-               time windows with reasonable available data are considered")
+               time windows with reasonable available data are considered.
+               If possible a basic model as well ans gender and age interaction
+               models are applied.")
 
   all_results <- list()
 
@@ -396,13 +459,11 @@ linearRegression <- function(availability, time_availability) {
   }
 
   # filter out patients with unknown gender and/or unknown age
-  base_filter <- "AND gender IN ('male', 'female') AND age IS NOT NULL"
+  base_filter <- paste0("AND gender IN ('male', 'female') AND age IS NOT NULL")
 
   # for all execpt lab we only want the first measurement of IMP cases
   stationary_filter <- paste0(base_filter, " AND first = 1")
   lab_filter <- paste0(base_filter, " AND (first = 1 OR enc_class = 'AMB')")
-
-
 
   # get number of excluded rows
   query_excluded <- glue_sql("
@@ -431,13 +492,15 @@ linearRegression <- function(availability, time_availability) {
       cols_sql <- paste(atc_cols, collapse = ", ")
 
       query <- glue_sql("
-        SELECT value_norm, gender, age, {DBI::SQL(cols_sql)}
+        SELECT value_norm, gender, age,
+        CASE WHEN age < 18 THEN 'child' ELSE 'adult' END AS age_group,
+        {DBI::SQL(cols_sql)}
         FROM potassium_result
         WHERE time::TIMESTAMP >= {w$t_min}::TIMESTAMP
           AND time::TIMESTAMP <  {w$t_max}::TIMESTAMP
           {DBI::SQL(stationary_filter)}
       ", .con = con)
-      res <- runLinearRegressionMain(query, atc_cols, "medication")
+      res <- runLinearRegressionWithInteractions(query, atc_cols, "medication")
       all_results <- c(all_results, list(res))
     } else {
       writeLogData("Skipping medication")
@@ -469,14 +532,17 @@ linearRegression <- function(availability, time_availability) {
 
       if (length(valid_lab_col) > 0) {
         query <- glue_sql("
-          SELECT value_norm, gender, age, {DBI::SQL(value_col)}
+          SELECT value_norm, gender, age,
+          CASE WHEN age < 18 THEN 'child' ELSE 'adult' END AS age_group,
+          {DBI::SQL(value_col)}
           FROM potassium_result
           WHERE time::TIMESTAMP >= {w$t_min}::TIMESTAMP
             AND time::TIMESTAMP <  {w$t_max}::TIMESTAMP
             AND {DBI::SQL(value_col)} IS NOT NULL
             {DBI::SQL(lab_filter)}
         ", .con = con)
-        res <- runLinearRegressionMain(query, valid_lab_col,paste0("lab_", label))
+        res <- runLinearRegressionWithInteractions(query, valid_lab_col,paste0("lab_", label),
+                                                   covariate_is_continuous = TRUE)
         all_results <- c(all_results, list(res))
       }else {
         writeLogData(paste0("Skipping ", label))
@@ -498,13 +564,15 @@ linearRegression <- function(availability, time_availability) {
 
       if(length(valid_proc_col) > 0) {
       query <- glue_sql("
-        SELECT value_norm, gender, age, {DBI::SQL(col)}
+        SELECT value_norm, gender, age,
+        CASE WHEN age < 18 THEN 'child' ELSE 'adult' END AS age_group,
+        {DBI::SQL(col)}
         FROM potassium_result
         WHERE time::TIMESTAMP >= {w$t_min}::TIMESTAMP
           AND time::TIMESTAMP <  {w$t_max}::TIMESTAMP
           {DBI::SQL(stationary_filter)}
       ", .con = con)
-      res <- runLinearRegressionMain(query,valid_proc_col,
+      res <- runLinearRegressionWithInteractions(query,valid_proc_col,
                                     paste0("procedures_", col))
       all_results <- c(all_results, list(res))
       } else {
@@ -533,14 +601,16 @@ linearRegression <- function(availability, time_availability) {
     if (length(valid_cond_cols) > 0) {
       cols_sql <- paste(valid_cond_cols, collapse = ", ")
       query <- glue_sql("
-        SELECT value_norm, gender, age, {DBI::SQL(cols_sql)}
+        SELECT value_norm, gender, age,
+        CASE WHEN age < 18 THEN 'child' ELSE 'adult' END AS age_group,
+        {DBI::SQL(cols_sql)}
         FROM potassium_result
         WHERE time::TIMESTAMP >= {w$t_min}::TIMESTAMP
           AND time::TIMESTAMP <  {w$t_max}::TIMESTAMP
           {DBI::SQL(stationary_filter)}
       ", .con = con)
 
-      res <- runLinearRegressionMain(query, valid_cond_cols, "conditions")
+      res <- runLinearRegressionWithInteractions(query, valid_cond_cols, "conditions")
       all_results <- c(all_results, list(res))
     } else {
       writeLogData("Skipping conditions")
@@ -556,13 +626,14 @@ linearRegression <- function(availability, time_availability) {
   all_results <- c(all_results, list(res_next_timing))
 
   final_results <- bind_rows(all_results)
+  final_results <- addAdjustedPValues(final_results)
 
   return(final_results)
 }
 
 runLinearRegressionMain <- function(query, covariate_cols, source_name,
                                     row_threshold = 500000, outcome = "value_norm",
-                                    factor_levels = list()) {
+                                    factor_levels = list(), interaction_var = NULL) {
 
   # count all relevent rows
   count_query <- paste0("SELECT COUNT(*) AS n FROM (", query, ") AS sub")
@@ -590,23 +661,61 @@ runLinearRegressionMain <- function(query, covariate_cols, source_name,
     data <- dbGetQuery(con, query)
     res <- runLinearRegression(data, covariate_cols, source_name,
                                outcome = outcome, factor_levels = factor_levels,
-                               mean_age = mean_age)
+                               mean_age = mean_age, interaction_var = interaction_var)
     rm(data)
     gc()
     return(res)
   } else {
     return(runBigLinearRegression(query, covariate_cols, source_name,
                                   outcome = outcome, factor_levels = factor_levels,
-                                  mean_age = mean_age))
+                                  mean_age = mean_age, interaction_var = interaction_var))
   }
+}
+
+# interaction_var = NULL     -> outcome ~ gender + age + covariates (original model)
+# interaction_var = "gender" -> outcome ~ gender * (covariates) + age
+# interaction_var = "age_group" -> outcome ~ gender + age_group * (covariates)
+# gives the model and a human readable string
+
+buildRegressionFormula <- function(outcome, covariate_cols, interaction_var = NULL) {
+
+  covar_term <- paste(paste0("`", covariate_cols, "`"), collapse = " + ")
+  covar_plain <- paste(covariate_cols, collapse = " + ")
+
+  if (is.null(interaction_var)) {
+    formula_reg <- as.formula(paste(outcome, "~ gender + age +", covar_term))
+    model_string <- paste0(outcome, " ~ gender + age + ", covar_plain)
+
+  } else if (interaction_var == "gender") {
+    formula_reg <- as.formula(paste0(
+      outcome, " ~ gender * (", covar_term, ") + age"))
+    model_string <- paste0(
+      outcome, " ~ gender * (", covar_plain, ") + age")
+
+  } else if (interaction_var == "age_group") {
+    formula_reg <- as.formula(paste0(
+      outcome, " ~ gender + age_group * (", covar_term, ")"))
+    model_string <- paste0(
+      outcome, " ~ gender + age_group * (", covar_plain, ")")
+
+  } else {
+    stop(paste0("Unknown interaction_var: ", interaction_var))
+  }
+
+  result_list <- list(formula = formula_reg, model_string = model_string)
+  return(result_list)
 }
 
 runLinearRegression <- function(data, covariate_cols, source_name,
                                 outcome = "value_norm", factor_levels = list(),
-                                mean_age = NULL) {
+                                mean_age = NULL, interaction_var = NULL) {
 
   # fix gender order so that we always have the same reference
   data$gender <- factor(data$gender, levels = c("male", "female"))
+
+  if ("age_group" %in% names(data)) {
+    data$age_group <- factor(data$age_group, levels = c("adult", "child"))
+  }
 
   # apply requested factor releveling (e.g. result: reference level = "N")
   # before fitting, so the reference category is explicit and deterministic
@@ -622,14 +731,10 @@ runLinearRegression <- function(data, covariate_cols, source_name,
     data$age <- data$age - mean_age
   }
 
-  # build linear regression with base values + covariates_cols
-  formula_reg <- as.formula(
-    paste(outcome, "~ gender + age +",
-          paste(paste0("`", covariate_cols, "`"), collapse = " + ")))
-
-  # human-readable model string
-  model_string <- paste0(outcome, " ~ gender + age + ",
-                         paste(covariate_cols, collapse = " + "))
+  # build regression formula
+  built <- buildRegressionFormula(outcome, covariate_cols, interaction_var)
+  formula_reg  <- built$formula
+  model_string <- built$model_string
 
   n_total <- nrow(data)
 
@@ -672,14 +777,12 @@ runLinearRegression <- function(data, covariate_cols, source_name,
 
 runBigLinearRegression <- function(query, covariate_cols, source_name,
                                    outcome = "value_norm", factor_levels = list(),
-                                   mean_age = NULL) {
+                                   mean_age = NULL, interaction_var = NULL) {
 
-  formula_reg <- as.formula(
-    paste( outcome, "~ gender + age +",
-           paste(paste0("`", covariate_cols, "`"), collapse = " + ")))
-
-  model_string <- paste0(outcome, " ~ gender + age + ",
-                         paste(covariate_cols, collapse = " + "))
+  # build regression formula
+  built <- buildRegressionFormula(outcome, covariate_cols, interaction_var)
+  formula_reg  <- built$formula
+  model_string <- built$model_string
 
   rs <- dbSendQuery(con, query)
 
@@ -696,6 +799,11 @@ runBigLinearRegression <- function(query, covariate_cols, source_name,
 
     # make sure that in every chunk are male and female
     data_chunk$gender <- factor(data_chunk$gender, levels = c("male", "female"))
+
+    # same for age_group, if present in this query
+    if ("age_group" %in% names(data_chunk)) {
+      data_chunk$age_group <- factor(data_chunk$age_group, levels = c("adult", "child"))
+    }
 
     # apply requested factor releveling (e.g. result: reference level = "N")
     # consistently in every chunk, otherwise biglm's update() would break
@@ -876,7 +984,9 @@ nextKTimingRegression <- function() {
         paste0("next_k_timing_categorical_", cohort_suffix))) {
 
         query_cat <- glue_sql("
-          SELECT next_hours, gender, age, result
+          SELECT next_hours, gender, age,
+          CASE WHEN age < 18 THEN 'child' ELSE 'adult' END AS age_group,
+          result
           FROM potassium_result
           {base_filter}
         ", .con = con)
@@ -907,7 +1017,9 @@ nextKTimingRegression <- function() {
         paste0("next_k_occurred_", cohort_suffix))) {
 
       query_occurred <- glue_sql("
-        SELECT next_flag, gender, age, result
+        SELECT next_flag, gender, age,
+        CASE WHEN age < 18 THEN 'child' ELSE 'adult' END AS age_group,
+        result
         FROM potassium_result
         {base_filter_occurred}
       ", .con = con)
@@ -918,10 +1030,8 @@ nextKTimingRegression <- function() {
         factor_levels = list(result = c("N", "L", "H"))
       )
     }
-
     return(list(res_cat, res_num, res_occurred))
   }
-
 
   # all measurements
   all_results <- run_cohort("", "all")
@@ -929,6 +1039,8 @@ nextKTimingRegression <- function() {
   all_results <- c(all_results, run_cohort("AND first = 1", "only_first"))
 
   final_results <- bind_rows(all_results)
+  final_results <- addAdjustedPValues(final_results)
+
   return(final_results)
 }
 
@@ -957,7 +1069,6 @@ hasValidFactorLevels <- function(base_filter_sql, col, source_name) {
       paste(sparse, collapse = ", ")))
     return(FALSE)
   }
-
   return(TRUE)
 }
 
@@ -985,12 +1096,14 @@ runAfterOutcomeRegression <- function(outcome_col, label, w, extra_filter_sql) {
       base_filter, "result", paste0(label, "_categorical"))) {
 
       query_cat <- glue_sql("
-        SELECT {`outcome_col`}, gender, age, result
+        SELECT {`outcome_col`}, gender, age,
+        CASE WHEN age < 18 THEN 'child' ELSE 'adult' END AS age_group,
+        result
         FROM potassium_result
         {base_filter}
       ", .con = con)
 
-      res_cat <- runLinearRegressionMain(
+      res_cat <- runLinearRegressionWithInteractions(
         query_cat, "result", paste0(label, "_categorical"),
         outcome = outcome_col,
         factor_levels = list(result = c("N", "L", "H"))
@@ -999,7 +1112,137 @@ runAfterOutcomeRegression <- function(outcome_col, label, w, extra_filter_sql) {
     }
   }
 
-  return(bind_rows(all_results))
+  return(addAdjustedPValues(bind_rows(all_results)))
 }
 
+# checks whether, within each level of interaction_var, the covariate col
+# has enough non-degenerate data to support an interaction term:
+# - categorical/binary col: every (interaction_var level x col level)
+#   combination needs >= k_value rows, and every interaction_var group
+#   needs to see more than one level of col
+# - continuous col: every interaction_var group needs >= k_value non-NULL
+#   rows and non-zero variance of col
+hasValidInteractionCells <- function(query, interaction_var, col,
+                                     isContinuous = FALSE) {
+
+  if (isContinuous) {
+    check_query <- paste0(
+      "SELECT ", interaction_var, " AS grp, COUNT(", col, ") AS n, ",
+      "STDDEV(", col, ") AS sd_value FROM (", query, ") AS sub ",
+      "WHERE ", col, " IS NOT NULL GROUP BY ", interaction_var)
+    check_result <- dbGetQuery(con, check_query)
+
+    bad <- check_result[
+      check_result$n < k_value | is.na(check_result$sd_value) |
+        check_result$sd_value == 0, ]
+
+    if (nrow(bad) > 0) {
+      return(list(valid = FALSE, reason = "insufficient/constant data"))
+    }
+    return(list(valid = TRUE, reason = NA_character_))
+
+  } else {
+    check_query <- paste0(
+      "SELECT ", interaction_var, " AS grp, ", col, " AS level, COUNT(*) AS n ",
+      "FROM (", query, ") AS sub GROUP BY ", interaction_var, ", ", col)
+    check_result <- dbGetQuery(con, check_query)
+
+    sparse <- check_result[check_result$n < k_value, ]
+    if (nrow(sparse) > 0) {
+      return(list(valid = FALSE, reason = "sparse cell(s) below k_value"))
+    }
+
+    levels_per_group <- table(check_result$grp)
+    if (any(levels_per_group < 2)) {
+      return(list(valid = FALSE, reason = "not every group has >1 level"))
+    }
+    return(list(valid = TRUE, reason = NA_character_))
+  }
+}
+
+runLinearRegressionWithInteractions <- function(query, covariate_cols, source_name,
+                                                row_threshold = 500000,
+                                                outcome = "value_norm",
+                                                factor_levels = list(),
+                                                covariate_is_continuous = FALSE,
+                                                add_interactions = TRUE) {
+
+  # instead of writing interaction skipping to log, write a skip note to output
+  makeSkipRow <- function(skip_source, term, note) {
+    data.frame(source = skip_source, term = term, regression_type = "skipped",
+               note = note, stringsAsFactors = FALSE)
+  }
+
+  all_results <- list(
+    runLinearRegressionMain(query, covariate_cols, source_name,
+                            row_threshold = row_threshold, outcome = outcome,
+                            factor_levels = factor_levels)
+  )
+
+  if (add_interactions) {
+    for (interaction_var in c("gender", "age_group")) {
+
+      interaction_source <- paste0(source_name, "_", interaction_var, "_interaction")
+
+      checks <- lapply(covariate_cols, function(col) {
+        hasValidInteractionCells(query, interaction_var, col,
+                                 isContinuous = covariate_is_continuous)
+      })
+      names(checks) <- covariate_cols
+
+      is_valid <- vapply(checks, function(x) x$valid, logical(1))
+      ok_cols <- covariate_cols[is_valid]
+
+      if (any(!is_valid)) {
+        skipped <- covariate_cols[!is_valid]
+        reasons <- vapply(checks[!is_valid], function(x) x$reason, character(1))
+        note <- paste0(sum(!is_valid), " column(s) skipped: ",
+                       paste0(skipped, " (", reasons, ")", collapse = "; "))
+        all_results <- c(all_results, list(
+          makeSkipRow(interaction_source, "SKIPPED_COLUMNS", note)
+        ))
+      }
+
+      if (length(ok_cols) > 0) {
+        res <- runLinearRegressionMain(
+          query, ok_cols, interaction_source,
+          row_threshold = row_threshold, outcome = outcome,
+          factor_levels = factor_levels, interaction_var = interaction_var)
+        all_results <- c(all_results, list(res))
+      } else {
+        all_results <- c(all_results, list(
+          makeSkipRow(interaction_source, "SKIPPED_MODEL",
+                      "no covariate columns passed hasValidInteractionCells")
+        ))
+      }
+    }
+  }
+
+  bind_rows(all_results)
+}
+
+# adds a p_adjusted column (Benjamini-Hochberg)
+addAdjustedPValues <- function(df) {
+
+  if (is.null(df) || nrow(df) == 0) return(df)
+
+  control_terms <- c("(Intercept)", "genderfemale", "age", "age_groupchild")
+
+  df$term_category <- ifelse(
+    df$term %in% control_terms, "control",
+    ifelse(grepl(":", df$term, fixed = TRUE), "interaction", "main"))
+
+  df$p_adjusted <- NA_real_
+
+  testable <- df$term_category != "control"
+  if (any(testable)) {
+    df$p_adjusted[testable] <- ave(
+      df$p_value[testable],
+      df$source[testable], df$term_category[testable],
+      FUN = function(p) p.adjust(p, method = "BH")
+    )
+  }
+
+  df
+}
 

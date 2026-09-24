@@ -241,21 +241,6 @@ getColumnExpr <- function(name_of_file, name_of_column, type_of_column) {
   }
 }
 
-# builds a type_clause for duckdb to ensure that the columns are typed as
-# Varchar. This is helpful to prevent that codes, like snomed codes, are
-# typed as numbers.
-getVarcharTypeClause <- function(cols) {
-
-  entries <- sprintf(
-    "%s: 'VARCHAR'",
-    sapply(cols, function(x) DBI::dbQuoteString(con, x))
-  )
-
-  type_cast <- DBI::SQL(paste0("types={", paste(entries, collapse = ", "), "}"))
-
-  return(type_cast)
-}
-
 # build a type_clause for duckdb with mixed types. Input is a list like
 # z.B. getTypeClause(code = "VARCHAR", ref = "DOUBLE")
 getTypeClause <- function(...) {
@@ -279,19 +264,27 @@ getTypeClause <- function(...) {
 
 
 ######
-# function to cut-off data that does not meet the required k-anonymity
+# functions to cut-off data that does not meet the required k-anonymity
 ######
 
 applyKAnonymity <- function(df, key_var, static_vars = NULL) {
 
   # get a true/false information for all lines
-  lines_to_anonymise <- df[[key_var]] < k_value & df[[key_var]] != 0
+  lines_to_anonymise <- rep(FALSE, nrow(df))
+
+  for (kv in key_var) {
+    mask <- df[[kv]] < k_value & df[[kv]] != 0
+    mask[is.na(mask)] <- TRUE
+    lines_to_anonymise <- lines_to_anonymise | mask
+  }
 
   # anonymise everything except the static_vars
   data_vars <- setdiff(names(df), c(key_var, static_vars))
 
   # write "< k_value" to the Key_var (normally the var with the patient count)
-  df[[key_var]][lines_to_anonymise] <- paste0("<", k_value)
+  for (kv in key_var) {
+    df[[kv]][lines_to_anonymise] <- paste0("<", k_value)
+  }
 
   # set all other vars to NA
   df[lines_to_anonymise, data_vars] <- NA
@@ -300,8 +293,7 @@ applyKAnonymity <- function(df, key_var, static_vars = NULL) {
 }
 
 # takes a dataframe and suppresses every value in cols that is <5
-# Note: that is no real k-anonymization since in many cases values can
-# be re-calculated. So use with care
+# If data is matrix like, in some cases values can be re-calculated. So use with care
 applyKExtra <- function(df, cols) {
 
   for (col in cols) {
@@ -313,5 +305,4 @@ applyKExtra <- function(df, cols) {
   }
   return (df)
 }
-
 

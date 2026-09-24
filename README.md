@@ -15,7 +15,7 @@ Der Fragebogen findet sich unter: [Umfrage Kalium360](https://kurzlinks.de/Kaliu
 
 ## Schritt 1: Datenausleitung mit der DUP-Pipeline
 
-Die benötigten Daten werden von dem lokalen FHIR-Server mit Hilfe der DUP-Pipeline ausgeleitet. Benötigt werden dabei die Schritte TORCH und FHIR-flattener. Der DIMP Schritt ist optional und für dieses Projekt (verteilte Analyse) nicht erforderlich, kann bei Bedarf aber zusätzlich ausgeführt werden. 
+Die benötigten Daten werden von dem lokalen FHIR-Server mit Hilfe der DUP-Pipeline ausgeleitet. Benötigt werden dabei die Schritte TORCH und FHIR-flattener. Die empfohlene Konfiguration für aether (aether-kalium-config.yml) liegt ebenso wie die aktuelle flatteningLookup.json dem Projekt bei.
 
 ### CRTDL Varianten
 
@@ -73,9 +73,10 @@ Es werden folgende Output Dateien erzeugt:
    - countPotassiumValuesPerMonth.csv: Messwerte pro Monat
    - distributionPotassiumValues.csv: Counts der Werte pro bin. Sowohl für die gesamte Kohorte wie auch getrennt nach LOINC, Geschlecht und Alter. 
    - timelineCovariates.csv: Counts der Covariates pro Monat
+   - potassiumNext6h: Counts zur Veränderung der Kaliumwerte innerhalb von 6 Stunden 
    - compareSerumBlood.csv: statistischer Vergleich eng beeinander gemessener Serum und Blut Werte. Diese Datei ist optional und wird nur bei entsprechend vorhandenen Daten geschrieben. 
-   - covariatesCounts.csv: Counts zu der Co-occurrence auffälliger Kaliumwerte und den Covariaten.
-   - covariatesRegression: Ergebnisse der linearen Regressionen zu dem Zusammenhang von Kaliumwerten und den Covariaten.
+   - covariatesCounts.csv: Counts zu der Co-occurrence auffälliger Kaliumwerte und den Covariaten getrennt nach unterschiedlichn Kohorten.
+   - covariatesRegression: Ergebnisse der linearen Regressionen zu dem Zusammenhang von Kaliumwerten und den Covariaten sowie dem Einfluss von Alter und Geschlecht. 
 
 
 ## Alternative: starten ohne Docker

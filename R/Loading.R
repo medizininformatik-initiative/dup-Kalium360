@@ -37,6 +37,21 @@ loadPotassiumData <- function() {
                  , values_without_unit)
   }
 
+
+  # count age < 0
+  query <- glue_sql("
+    SELECT
+      COUNT(*) AS n
+      FROM potassium
+      WHERE age < 1
+  ", .con = con)
+
+  babys <- dbGetQuery(con, query)$n
+
+  if (values_without_unit > 0) {
+    writeLogData("Measurements excluded because age < 1 : ", babys)
+  }
+
   # if there is strange stuff in units there is the possibility to mark
   # the unit as invalid. Filter those values out.
   query <- glue::glue_sql("
@@ -54,99 +69,62 @@ loadPotassiumData <- function() {
     glue_sql("1 = 1", .con = con)
   }
 
-  # create raw table with value_norm and interpretation of result as (L/N/H)
-  # and as a more detailed (L3/L2/L1/N/H1/H2/H3/H4)
-  # In case there is no defined reference range default reference values are
-  # applied. Children under two have their own reference values. In case
-  # there is no age we assume the patients to be older than 2.
-  # Note that for children under 2 the normal range is larger so that
-  # for age 0 h1 and h2 will result in N. And for age 1-2 h1 will result in N
-
+  # create a table with value_norm from potassium
   query <- glue_sql("
     CREATE OR REPLACE TEMP TABLE potassium_result_raw AS
-
-    WITH p AS (
-      SELECT
-        *,
-        CASE
-          WHEN age = 0 THEN {kalium_ref$low_0_1}
-          WHEN age IN (1, 2) THEN {kalium_ref$low_1_2}
-          ELSE {kalium_ref$low}
-        END AS ref_low_default,
-        CASE
-          WHEN age = 0 THEN {kalium_ref$high_0_1}
-          WHEN age IN (1, 2) THEN {kalium_ref$high_1_2}
-          ELSE {kalium_ref$high}
-        END AS ref_high_default,
-        CASE
-          WHEN TRIM(comparator) IN ('<', '<=', '>', '>=')
-          THEN TRIM(comparator)
-          ELSE NULL
-        END AS comparator_norm
-      FROM potassium
-    ),
-    n AS (
       SELECT
         p.*,
         p.value * uc.factor AS value_norm,
-        COALESCE(p.ref_low, p.ref_low_default) AS ref_low_effective,
-        COALESCE(p.ref_high, p.ref_high_default) AS ref_high_effective
-      FROM p
+      FROM potassium p
       LEFT JOIN unit_conversion uc
         ON uc.label = 'kalium'
         AND uc.source_unit = p.unit
       WHERE p.value IS NOT NULL
         AND p.unit IS NOT NULL
         AND {invalid_filter_sql}
-    ),
-    classified AS (
-      SELECT
-        n.*,
-        CASE
-          WHEN comparator_norm IN ('<', '<=') THEN 'L'
-          WHEN comparator_norm IN ('>', '>=') THEN 'H'
-          WHEN value_norm < ref_low_effective THEN 'L'
-          WHEN value_norm > ref_high_effective THEN 'H'
-          ELSE 'N'
-        END AS result
-      FROM n
-    )
+    ", .con = con)
+
+  dbExecute(con, query)
+
+  # add vale_norm_compare (clean up for rounding and comparator problems)
+  addCompareValue("potassium_result_raw", value = FALSE, value_norm = TRUE)
+
+  # create raw table with value_norm and interpretation of result as (L/N/H)
+  # and as a more detailed result (L3/L2/L1/N/H1/H2/H3/H4)
+  # In case there is no defined reference range default reference values are
+  # applied. Children under 1 are excluded.
+
+  query <- glue_sql("
+    CREATE OR REPLACE TEMP TABLE potassium_result_raw AS
+
     SELECT
-      loinc,
-      obs_id,
-      patient,
-      time,
-      age,
-      gender,
-      value,
-      unit,
-      comparator,
-      value_norm,
-      result,
+      loinc, obs_id, patient, time, age, gender,
+      value, value_compare, unit, comparator,
+      value_norm, value_norm_compare,
+      ROUND(COALESCE(ref_low, {kalium_ref$low}), {value_round_digits}) AS ref_low_effective,
+      ROUND(COALESCE(ref_high, {kalium_ref$high}), {value_round_digits}) AS ref_high_effective,
+
       CASE
-        WHEN comparator_norm IN ('<', '<=') THEN
-          CASE
-            WHEN value_norm < {kalium_ref$l2} THEN 'L3'
-            WHEN value_norm < {kalium_ref$l1} THEN 'L2'
-            ELSE 'L1'
-          END
-        WHEN comparator_norm IN ('>', '>=') THEN
-          CASE
-            WHEN value_norm <= {kalium_ref$h1} THEN 'H1'
-            WHEN value_norm <= {kalium_ref$h2} THEN 'H2'
-            WHEN value_norm <= {kalium_ref$h3} THEN 'H3'
-            ELSE 'H4'
-          END
-        WHEN value_norm < {kalium_ref$l2} THEN 'L3'
-        WHEN value_norm < {kalium_ref$l1} THEN 'L2'
-        WHEN value_norm < ref_low_effective THEN 'L1'
-        WHEN value_norm <= ref_high_effective THEN 'N'
-        WHEN value_norm <= {kalium_ref$h1} THEN 'H1'
-        WHEN value_norm <= {kalium_ref$h2} THEN 'H2'
-        WHEN value_norm <= {kalium_ref$h3} THEN 'H3'
+        WHEN value_norm_compare IS NULL THEN NULL
+        WHEN value_norm_compare < ref_low_effective THEN 'L'
+        WHEN value_norm_compare > ref_high_effective THEN 'H'
+        ELSE 'N'
+      END AS result,
+
+      CASE
+        WHEN value_norm_compare IS NULL THEN NULL
+        WHEN value_norm_compare < {kalium_ref$l2} THEN 'L3'
+        WHEN value_norm_compare < {kalium_ref$l1} THEN 'L2'
+        WHEN value_norm_compare < ref_low_effective THEN 'L1'
+        WHEN value_norm_compare <= ref_high_effective THEN 'N'
+        WHEN value_norm_compare <= {kalium_ref$h1} THEN 'H1'
+        WHEN value_norm_compare <= {kalium_ref$h2} THEN 'H2'
+        WHEN value_norm_compare <= {kalium_ref$h3} THEN 'H3'
         ELSE 'H4'
       END AS result_detail
-    FROM classified
+
+    FROM potassium_result_raw
+    WHERE age > 0
   ", .con = con)
 
   dbExecute(con, query)
@@ -227,20 +205,14 @@ loadPotassiumData <- function() {
 
   # get counts of excluded values
   query <- glue_sql("
-    SELECT 'without_value' AS kategorie, COUNT(*) AS n
+    SELECT COUNT(*) AS n
     FROM potassium
     WHERE value IS NULL
-    UNION ALL
-    SELECT 'underage_without_reference', COUNT(*)
-    FROM potassium
-    WHERE age IS NOT NULL
-      AND age < 18
-      AND (ref_low IS NULL OR ref_high IS NULL)
   ", .con = con)
+  missing_value <- dbGetQuery(con, query)$n
 
-  exclusion_summary <- dbGetQuery(con, query)
-  writeLogData("Values excluded from further evaluation: "
-               , exclusion_summary)
+  writeLogData("Measurements excluded because of missing value: "
+               , missing_value)
 
   # get counts of measurements that have two different results at the same time
   query <- glue_sql("
@@ -336,6 +308,19 @@ loadEncounter <- function() {
   types <- dbGetQuery(con, query)
 
   writeLogData("Available encounter types: ", types)
+
+  # get count of AMB values with and without enddate
+  query <- glue_sql("
+      SELECT type, class, count(*) as count
+      FROM encounter_all
+      WHERE period_end IS NULL
+      GROUP BY type, class
+      ORDER BY type, class
+  ", .con = con)
+
+  open_enc <- dbGetQuery(con, query)
+
+  writeLogData("Encounters without period_end: ", open_enc)
 
   writeLogData("Note: encounters without type are considered to be einrichtungskontakte")
 
@@ -843,36 +828,22 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
   query <- glue_sql("
     SELECT loinc, unit, COUNT(*) AS n,
      COUNT(*) FILTER (WHERE ref_high IS NOT NULL) AS n_ref_high,
-     COUNT(*) FILTER (WHERE ref_low IS NOT NULL) AS n_ref_low
-      FROM {name_raw}
-      GROUP BY loinc, unit
+     COUNT(*) FILTER (WHERE ref_low IS NOT NULL) AS n_ref_low,
+      MEAN(value)   AS mean,
+      MEDIAN(value)   AS median,
+      STDDEV_POP(value)  AS sd,
+      MIN(value)                         AS min,
+      MAX(value)                         AS max,
+      QUANTILE_CONT(value, 0.25)         AS q1,
+      QUANTILE_CONT(value, 0.75)         AS q3
+    FROM {name_raw}
+    GROUP BY loinc, unit
   ", .con = con)
 
   loincs_summary <- dbGetQuery(con, query)
 
   writeLogData(paste0("Found LOINCs and units in ", name_raw, ": "))
-  writeLogData("LOINC/unit/count/count_ref_high/count_ref_low ", loincs_summary)
-
-  query <- glue_sql("
-    SELECT loinc, unit, COUNT(*) AS n
-      FROM {name_raw}
-      WHERE comparator is not NULL
-      GROUP BY loinc, unit
-  ", .con = con)
-  comparator_summary <- dbGetQuery(con, query)
-
-  if (nrow(comparator_summary) > 0) {
-   writeLogData(paste0("Measurements with comparator in ", name, ": "), comparator_summary)
-
-    query <- glue_sql("
-      SELECT comparator, value, count(*) as n
-      FROM  {name_raw}
-      WHERE comparator IS NOT NULL
-      GROUP BY comparator, value
-    ", .con = con)
-    comp_value <- dbGetQuery(con, query)
-    writeLogData("Found comparator/value/count: ", comp_value)
-  }
+  writeLogData("LOINC/unit/count/count_ref_high/count_ref_low/mean/median/sd/min/max/q1/q3 ", loincs_summary)
 
   # get the default reference_values
   default <- get(paste0(name, "_ref"))
@@ -905,8 +876,8 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
   if(multi_results > 0) {
     writeLogData("Measurements with more than one result at the same time (final table): ",
                  multi_results)
-  }
 
+  }
 
   # get all invalid rows. This is done for all label (also the ones that
   # dont care about units)
@@ -940,9 +911,9 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
                  count_invalid)
   }
 
-  # assign L/N/H.
-  # If there are no ref-ranges at all the measurement will be discarded.
-  # Only one ref range (high or low) is fine.
+  # create a table with value_norm
+  # unit conversion is only done when care_about_unit is true
+
   unit_filter_sql <- if (care_about_unit) {
     glue_sql("o.unit IS NOT NULL", .con = con)
   } else {
@@ -951,47 +922,54 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
 
   query <- glue_sql("
     CREATE OR REPLACE TEMP TABLE {name} AS
-    WITH o AS (
-      SELECT *,
-      CASE WHEN TRIM(comparator) IN ('>', '>=', '<', '<=')
-      THEN TRIM(comparator) ELSE NULL END AS comparator_norm
-      FROM {name_raw}
-    )
-    SELECT DISTINCT
-      o.patient,
-      o.time,
-      o.value,
-      o.encounter,
-      CASE WHEN {care_about_unit}
-            THEN o.value * uc.factor
-            ELSE o.value
+      SELECT o.*,
+        CASE
+        WHEN {care_about_unit}
+        THEN o.value * uc.factor
+        ELSE o.value
       END AS value_norm,
+      FROM {name_raw} o
+      LEFT JOIN unit_conversion uc
+        ON uc.label = o.label
+        AND uc.source_unit = o.unit
+    WHERE value IS NOT NULL
+      AND {unit_filter_sql}
+      AND {invalid_filter_sql}
+    ", .con = con)
+  dbExecute(con, query)
+
+  # add value_compare and vale_norm_compare (taking care for rounding and comparator problems)
+  addCompareValue(name, value = TRUE, value_norm = TRUE)
+
+  # assign L/N/H.
+  # If there are no ref-ranges at all values are kept but result gets NULL
+  # Only one ref range (high or low) is fine.
+
+  query <- glue_sql("
+    CREATE OR REPLACE TEMP TABLE {name} AS
+    SELECT DISTINCT
+      patient,
+      time,
+      encounter,
+      label,
+      value,
+      value_compare,
+      value_norm,
+      value_norm_compare,
       CASE
-        WHEN o.comparator_norm IN ('<', '<=') THEN 'L'
-        WHEN o.comparator_norm IN ('>', '>=') THEN 'H'
-        WHEN (o.ref_low IS NOT NULL AND o.value < o.ref_low)
-          OR (o.ref_low IS NULL AND value_norm < {default$low})
+        WHEN COALESCE(ref_low, {default$low}) IS NULL
+          AND COALESCE(ref_high, {default$high}) IS NULL THEN NULL
+        WHEN (ref_low IS NOT NULL AND value_compare < ROUND(ref_low, {value_round_digits}))
+          OR (ref_low IS NULL AND value_norm_compare < {default$low})
           THEN 'L'
-        WHEN (o.ref_high IS NOT NULL AND o.value > o.ref_high)
-          OR (o.ref_high IS NULL AND value_norm > {default$high})
+        WHEN (ref_high IS NOT NULL AND value_compare > ROUND(ref_high, {value_round_digits}))
+          OR (ref_high IS NULL AND value_norm_compare > {default$high})
           THEN 'H'
         ELSE 'N'
-      END AS result,
-      o.label
-    FROM o
-    LEFT JOIN unit_conversion uc
-      ON uc.label = o.label
-      AND uc.source_unit = o.unit
-    WHERE value IS NOT NULL
-    AND {unit_filter_sql}
-    AND {invalid_filter_sql}
-    AND (
-        COALESCE(o.ref_low, {default$low}) IS NOT NULL
-        OR COALESCE(o.ref_high, {default$high}) IS NOT NULL
-    )
+      END AS result
+    FROM {name}
   ", .con = con)
-  count <- dbExecute(con, query)
-
+  count_all <- dbExecute(con, query)
 
   # get values that are not inside the plausibility range
   query <- glue_sql("
@@ -1001,16 +979,18 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
       MAX(value_norm) AS max_implausible,
       MEDIAN(value_norm) AS median_implausible
     FROM {name}
-    WHERE value_norm >= {default$high_ext}
-    OR value_norm <= {default$low_ext}
+    WHERE value_norm > {default$high_ext}
+    OR value_norm < {default$low_ext}
   ", .con = con)
 
   implausible_values <- dbGetQuery(con, query)
+
 
   if (implausible_values$n_implausible > 0) {
     writeLogData("Filtered implausible values (n, min, max, median): ")
     writeLogData(implausible_values, kanonymity = FALSE)
 
+  # create final table
     query <- glue_sql("
     CREATE OR REPLACE TEMP TABLE {name} AS
       SELECT *
@@ -1019,11 +999,22 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
        AND value_norm >= {default$low_ext}
     ", .con = con)
 
-    count <- dbExecute(con, query)
+    count_all <- dbExecute(con, query)
   }
 
+  # get final counts per result
+  query <- glue_sql("
+    SELECT
+      result, COUNT(*) AS n,
+    FROM {name}
+    GROUP by result
+  ", .con = con)
 
-  writeLogData(paste0("Number of final ", name, " values: "), count)
+  result_count <- dbGetQuery(con, query)
+  writeLogData("Counts per applied category: ", result_count)
+
+  # final total count
+  writeLogData(paste0("Number of final ", name, " values: "), count_all)
 
   query <- glue_sql("
       DROP TABLE IF EXISTS {`name_raw`};
@@ -1053,14 +1044,12 @@ loadProcedures <- function() {
         sep = " OR "
       ))
 
-      # in icu profile there is no performed datetime
+      #  icu profile has no performed datetime
       performed_sql <- if (icu) {
         glue_sql("NULL::TIMESTAMP", .con = con)
       } else {
         glue_sql("{`pro_performed`}::TIMESTAMP", .con = con)
       }
-
-      #types_clause <- getVarcharTypeClause(c(pro_sno_code, pro_ops_code))
 
       types_clause <- getTypeClause(pro_period_start = "TIMESTAMP",
                                    pro_period_end = "TIMESTAMP",
@@ -1193,7 +1182,7 @@ loadConditions <- function() {
 
   path <- paste0(data_dir, "/", name_of_condition_csv)
 
-  # status and verifaction NULL is possible because it is not required.
+  # status and verification NULL is possible because it is not required.
   query <- glue_sql("
             CREATE OR REPLACE TEMP TABLE conditions AS
             SELECT DISTINCT
