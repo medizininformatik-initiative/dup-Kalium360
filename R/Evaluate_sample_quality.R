@@ -614,7 +614,8 @@ evaluateNotes <- function(quality_loincs_available) {
         {`obs_loinc`}  AS loinc,
         {`obs_note`}   AS note
       FROM read_csv({path},all_varchar = true)
-      WHERE {`obs_status`} NOT IN ('cancelled', 'entered-in-error')
+      WHERE ({`obs_status`} IS NULL
+            OR NOT {`obs_status`} IN ('cancelled', 'entered-in-error'))
         AND {`obs_note`} IS NOT NULL
         AND {`obs_loinc_system`} = 'http://loinc.org'
         AND CAST({`obs_time`} AS TIMESTAMP) >= {global_min_time}
@@ -737,6 +738,8 @@ cleanUpSampleQuality <- function() {
       DROP TABLE IF EXISTS quality_data;
       DROP TABLE IF EXISTS specimen_data;
       DROP TABLE IF EXISTS potassium_quality_join;
+      DROP TABLE IF EXISTS potassium_quality_join_ref;
+      DROP TABLE IF EXISTS lab_notes;
     ", .con = con)
   dbExecute(con, query)
 }

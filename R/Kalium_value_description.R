@@ -466,12 +466,12 @@ calculateStatistics <- function(table_to_check) {
                AND value_compare < {ref_low_cls} THEN 1 END)",
                                         .con = con))
 
+  # only one ref is fine
   n_within_ref_expr <- DBI::SQL(glue_sql("
     COUNT(CASE WHEN value IS NOT NULL
-               AND ref_low IS NOT NULL
-               AND ref_high IS NOT NULL
-               AND value_compare >= {ref_low_cls}
-               AND value_compare <= {ref_high_cls} THEN 1 END)",
+               AND (ref_low IS NOT NULL OR ref_high IS NOT NULL)
+               AND (ref_low IS NULL OR value_compare >= {ref_low_cls})
+               AND (ref_high IS NULL OR value_compare <= {ref_high_cls}) THEN 1 END)",
                                          .con = con))
 
   n_no_ref_expr <- DBI::SQL(glue_sql("
@@ -605,12 +605,12 @@ calculateDistribution <- function(table_to_check) {
           CASE
             WHEN value_compare < {lower} THEN -1
             WHEN value_compare >= {upper} THEN 999999
-            ELSE FLOOR(value * 10)
+            ELSE FLOOR(value_compare * 10)
           END AS bin_key,
           COUNT(*) AS n
         FROM {`table_to_check`}
         WHERE loinc = {loinc}
-          AND unit = {unit}
+          AND unit IS NOT DISTINCT FROM {unit}
           AND value IS NOT NULL
         GROUP BY 1
       )

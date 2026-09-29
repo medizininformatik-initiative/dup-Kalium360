@@ -48,7 +48,7 @@ loadPotassiumData <- function() {
 
   babys <- dbGetQuery(con, query)$n
 
-  if (values_without_unit > 0) {
+  if (babys > 0) {
     writeLogData("Measurements excluded because age < 1 : ", babys)
   }
 
@@ -70,11 +70,13 @@ loadPotassiumData <- function() {
   }
 
   # create a table with value_norm from potassium
+  # we need unit_factor in the next step so keep it for the moment
   query <- glue_sql("
     CREATE OR REPLACE TEMP TABLE potassium_result_raw AS
       SELECT
         p.*,
         p.value * uc.factor AS value_norm,
+        uc.factor AS unit_factor
       FROM potassium p
       LEFT JOIN unit_conversion uc
         ON uc.label = 'kalium'
@@ -92,7 +94,8 @@ loadPotassiumData <- function() {
   # create raw table with value_norm and interpretation of result as (L/N/H)
   # and as a more detailed result (L3/L2/L1/N/H1/H2/H3/H4)
   # In case there is no defined reference range default reference values are
-  # applied. Children under 1 are excluded.
+  # applied. Children under 1 are excluded. Age NULL is allowed. In case
+  # there is a systematic problem with age we dont want to loose all data
 
   query <- glue_sql("
     CREATE OR REPLACE TEMP TABLE potassium_result_raw AS
@@ -101,9 +104,8 @@ loadPotassiumData <- function() {
       loinc, obs_id, patient, time, age, gender,
       value, value_compare, unit, comparator,
       value_norm, value_norm_compare,
-      ROUND(COALESCE(ref_low, {kalium_ref$low}), {value_round_digits}) AS ref_low_effective,
-      ROUND(COALESCE(ref_high, {kalium_ref$high}), {value_round_digits}) AS ref_high_effective,
-
+      ROUND(COALESCE(ref_low * unit_factor, {kalium_ref$low}), {value_round_digits}) AS ref_low_effective,
+      ROUND(COALESCE(ref_high * unit_factor, {kalium_ref$high}), {value_round_digits}) AS ref_high_effective,
       CASE
         WHEN value_norm_compare IS NULL THEN NULL
         WHEN value_norm_compare < ref_low_effective THEN 'L'
@@ -113,9 +115,12 @@ loadPotassiumData <- function() {
 
       CASE
         WHEN value_norm_compare IS NULL THEN NULL
-        WHEN value_norm_compare < {kalium_ref$l2} THEN 'L3'
-        WHEN value_norm_compare < {kalium_ref$l1} THEN 'L2'
-        WHEN value_norm_compare < ref_low_effective THEN 'L1'
+        WHEN value_norm_compare < ref_low_effective THEN
+          CASE
+            WHEN value_norm_compare < {kalium_ref$l2} THEN 'L3'
+            WHEN value_norm_compare < {kalium_ref$l1} THEN 'L2'
+            ELSE 'L1'
+          END
         WHEN value_norm_compare <= ref_high_effective THEN 'N'
         WHEN value_norm_compare <= {kalium_ref$h1} THEN 'H1'
         WHEN value_norm_compare <= {kalium_ref$h2} THEN 'H2'
@@ -124,7 +129,7 @@ loadPotassiumData <- function() {
       END AS result_detail
 
     FROM potassium_result_raw
-    WHERE age > 0
+    WHERE age > 0 OR age IS NULL
   ", .con = con)
 
   dbExecute(con, query)
@@ -176,7 +181,7 @@ loadPotassiumData <- function() {
 
   # base table for blood/serum analysis
   query <- glue_sql("
-    CREATE OR REPLACE TABLE potassium_result_loinc AS
+    CREATE OR REPLACE TEMP TABLE potassium_result_loinc AS
       SELECT DISTINCT
         p.loinc,
         p.obs_id,
@@ -324,6 +329,25 @@ loadEncounter <- function() {
 
   writeLogData("Note: encounters without type are considered to be einrichtungskontakte")
 
+  # get count of AMB values with and without enddate
+  query <- glue_sql("
+      SELECT type, class, count(*) as count
+      FROM encounter_all
+      WHERE period_end IS NOT NULL
+      AND period_start IS NOT NULL
+      AND period_start > period_end
+      GROUP BY type, class
+      ORDER BY type, class
+  ", .con = con)
+
+  invalid_enc <- dbGetQuery(con, query)
+
+  if (nrow(invalid_enc) == 0) {
+    writeLogData("No encounters with period_start > period_end")
+  } else {
+    writeLogData("Encounters with period_start > period_end: ", invalid_enc)
+  }
+
   # create a view for einrichtungskontakt encounter. Also add a time column
   # that contains period_start (for timeline)
   dbExecute(con, "
@@ -331,8 +355,9 @@ loadEncounter <- function() {
     SELECT *,
     period_start AS time
     FROM encounter_all
-    WHERE type IS NULL OR type = 'einrichtungskontakt';
-  ")
+    WHERE (type IS NULL OR type = 'einrichtungskontakt')
+     AND NOT (period_end IS NOT NULL AND period_start > period_end)
+    ")
 
   checkForDuplicates("encounter_main", "enc_id")
 
@@ -641,6 +666,22 @@ loadMedicationData <- function() {
 
     checkForDuplicates("medadm_all", "adm_id", "atc")
 
+    # get timestamps
+    count_query <- glue_sql("
+      SELECT
+        COUNT(*) AS n_total,
+        SUM(CASE WHEN period_start IS NOT NULL THEN 1 ELSE 0 END) AS n_period_start_not_null,
+        SUM(CASE WHEN period_end IS NOT NULL THEN 1 ELSE 0 END) AS n_period_end_not_null,
+        SUM(CASE WHEN effective IS NOT NULL THEN 1 ELSE 0 END) AS n_performed_not_null,
+        SUM(CASE WHEN period_start = period_end THEN 1 ELSE 0 END) AS n_start_eq_end
+      FROM medadm_all
+      ", .con = con)
+
+    time_counts <- dbGetQuery(con, count_query)
+
+    writeLogData("Found timestamps: total_medicatiions/period_start/period_end/effective/start = end: ")
+    writeLogData(time_counts)
+
     #delete the initial tables
     query <- glue_sql("
       DROP TABLE IF EXISTS medadm_med;
@@ -750,6 +791,9 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
                                obs_reference_high_unit = "VARCHAR",
                                obs_reference_low_unit = "VARCHAR")
 
+  # we need all the lab data inside global min/max plus the max lab window
+  margin_sql <- sprintf("INTERVAL '%d hours'", max(lab_windows))
+
   query <- glue_sql("
         CREATE OR REPLACE TEMP TABLE {name_raw} AS
         SELECT DISTINCT
@@ -773,8 +817,8 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
           OR NOT o.{`obs_status`} IN ('cancelled', 'entered-in-error'))
         AND o.{`obs_loinc_system`} = 'http://loinc.org'
         AND o.{`obs_loinc`} IN ({loincs*})
-        AND o.{`obs_time`} >= {global_min_time}
-        AND o.{`obs_time`} <= {global_max_time}
+        AND o.{`obs_time`} >= {global_min_time} - {DBI::SQL(margin_sql)}
+        AND o.{`obs_time`} <= {global_max_time} + {DBI::SQL(margin_sql)}
       ", .con = con)
   count <- dbExecute(con, query)
 
@@ -842,8 +886,16 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
 
   loincs_summary <- dbGetQuery(con, query)
 
+  # we want to keep small numbers in statistic. So instead of simple
+  # number suppressing use better applyKAnonymity.
+  # in case of small numbers we still want median and min, max
+  loincs_summary <- applyKAnonymity(loincs_summary, "n",
+                                    c("loinc", "unit", "n_ref_high",
+                                      "n_ref_low", "median", "min", "max"))
+
   writeLogData(paste0("Found LOINCs and units in ", name_raw, ": "))
-  writeLogData("LOINC/unit/count/count_ref_high/count_ref_low/mean/median/sd/min/max/q1/q3 ", loincs_summary)
+  writeLogData("LOINC/unit/count/count_ref_high/count_ref_low/mean/median/sd/min/max/q1/q3: ")
+  writeLogData(data = loincs_summary, kanonymity = FALSE)
 
   # get the default reference_values
   default <- get(paste0(name, "_ref"))
@@ -896,19 +948,22 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
     glue_sql("1 = 1", .con = con)
   }
 
-  # get the number of rows with invalid units. Those are excluded in the
-  # next step
-  query <- glue_sql("
-      SELECT count(*) as n
-      FROM {name_raw}
-      WHERE unit in ({invalid_units*})
-  ", .con = con)
+  # if there are invalid units get the count of affected rows.
+  # Those are excluded in the next step
 
-  count_invalid <- DBI::dbGetQuery(con, query)$n
+  if (length(invalid_units) > 0) {
+    query <- glue_sql("
+    SELECT count(*) as n
+    FROM {name_raw}
+    WHERE unit IN ({invalid_units*})
+    ", .con = con)
 
-  if(count_invalid > 0) {
-    writeLogData("Excluded measurements because of invalid unit: ",
-                 count_invalid)
+    count_invalid <- DBI::dbGetQuery(con, query)$n
+
+    if (count_invalid > 0) {
+      writeLogData("Excluded measurements because of invalid unit: ",
+                   count_invalid)
+    }
   }
 
   # create a table with value_norm
@@ -979,14 +1034,16 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
       MAX(value_norm) AS max_implausible,
       MEDIAN(value_norm) AS median_implausible
     FROM {name}
-    WHERE value_norm > {default$high_ext}
-    OR value_norm < {default$low_ext}
+    WHERE value_norm >= {default$high_ext}
+    OR value_norm <= {default$low_ext}
   ", .con = con)
 
   implausible_values <- dbGetQuery(con, query)
 
 
   if (implausible_values$n_implausible > 0) {
+    implausible_values <- applyKAnonymity(implausible_values, "n_implausible",
+                            c("min_implausible", "max_implausible", "median_implausible"))
     writeLogData("Filtered implausible values (n, min, max, median): ")
     writeLogData(implausible_values, kanonymity = FALSE)
 
@@ -1146,6 +1203,23 @@ loadProcedures <- function() {
 
       writeLogData("Counts per code_type: ", count_per_type)
 
+      # get timestamps
+      count_query <- glue_sql("
+      SELECT
+        COUNT(*) AS n_total,
+        SUM(CASE WHEN period_start IS NOT NULL THEN 1 ELSE 0 END) AS n_period_start_not_null,
+        SUM(CASE WHEN period_end IS NOT NULL THEN 1 ELSE 0 END) AS n_period_end_not_null,
+        SUM(CASE WHEN performed IS NOT NULL THEN 1 ELSE 0 END) AS n_performed_not_null,
+        SUM(CASE WHEN period_start = period_end THEN 1 ELSE 0 END) AS n_start_eq_end
+      FROM procedures
+      ", .con = con)
+
+      time_counts <- dbGetQuery(con, count_query)
+
+      writeLogData("Found timestamps: total_procedures/period_start/period_end/performed/start = end: ")
+      writeLogData(time_counts)
+
+
       #delete the initial tables
       query <- glue_sql("
       DROP TABLE IF EXISTS procedure_raw;
@@ -1193,7 +1267,7 @@ loadConditions <- function() {
               {`con_icd`} AS icd
             FROM read_csv_auto({path}) c
             WHERE ({`con_status`} IS NULL
-            OR NOT {`con_status`} IN ('inactive', 'remission', 'resolved'))
+            OR NOT {`con_status`} IN ('inactive', 'remission'))
             AND   ({`con_veri`} IS NULL
             OR NOT {`con_veri`} IN ('unconfirmed','provisional','differential',
                                                   'refuted','entered-in-error'))

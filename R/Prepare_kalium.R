@@ -127,7 +127,7 @@ createBasePotassiumTable <- function() {
           {`obs_method_system`} AS method_system,
           pat_id,
           gender,
-          date_diff('year', pat.gebdat_normalized,
+          date_sub('year', pat.gebdat_normalized,
                     ({`obs_time`}::TIMESTAMP)::DATE) AS age
         FROM read_csv_auto({path}, {types_clause}) pot
         LEFT JOIN patients pat
@@ -223,7 +223,7 @@ removeRepeatMeasurements <- function(table) {
     # log is in part1
     query <- glue_sql("
       SELECT COUNT(DISTINCT obs_id) AS issued_after
-      FROM potassium
+      FROM {table}
       WHERE issued > time
     ", .con = con)
 
@@ -232,37 +232,54 @@ removeRepeatMeasurements <- function(table) {
     # if we have issued information try to clean data
     if(issued_after > 0) {
 
-      query_lower_issued <- glue_sql("
+      cte <- glue_sql("
         WITH duplicates AS (
           SELECT *,
                  MAX(issued) OVER (PARTITION BY patient, time, loinc) AS max_issued,
-                 COUNT(*) OVER (PARTITION BY patient, time, loinc) AS n_dup
+                 COUNT(*)    OVER (PARTITION BY patient, time, loinc) AS n_dup
           FROM {table}
-        )
-        SELECT count(*)
-        FROM duplicates
-        WHERE n_dup >= 2
-          AND issued < max_issued
-      ", .con = con)
-
-      lower_issued <- dbGetQuery(con, query_lower_issued)
-      writeLogData("Count of removed data: ", lower_issued)
-
-      query_lower_issued <- glue_sql("
-        WITH duplicates AS (
+        ),
+        ranked AS (
           SELECT *,
-                 MAX(issued) OVER (PARTITION BY patient, time, loinc) AS max_issued,
-                 COUNT(*) OVER (PARTITION BY patient, time, loinc) AS n_dup
-          FROM {table}
+                 COUNT(*) FILTER (WHERE issued = max_issued)
+                   OVER (PARTITION BY patient, time, loinc) AS n_max
+          FROM duplicates
         )
-        SELECT count(*)
-        FROM duplicates
-        WHERE n_dup >= 2
-          AND issued >= max_issued
       ", .con = con)
 
-      unclear_issued <- dbGetQuery(con, query_lower_issued)
-      writeLogData("Count of remaining unclear data: ", unclear_issued)
+      # rows that will be removed:
+      # older issued or issued = NULL while another row of the group has a value
+      query_removed <- glue_sql("
+        {cte}
+        SELECT count(*) AS n
+        FROM ranked
+        WHERE time IS NOT NULL
+          AND n_dup >= 2
+          AND max_issued IS NOT NULL
+          AND (issued IS NULL OR issued < max_issued)
+      ", .con = con)
+
+      removed <- dbGetQuery(con, query_removed)
+      writeLogData("Count of removed data: ", removed)
+
+      # get groups that cannot be cleaned
+      query_unclear <- glue_sql("
+        {cte}
+        SELECT count(*) AS n
+        FROM (
+          SELECT DISTINCT patient, time, loinc
+          FROM ranked
+          WHERE time IS NOT NULL
+            AND n_dup >= 2
+            AND (
+              max_issued IS NULL
+              OR (issued = max_issued AND n_max >= 2)
+            )
+        )
+        ", .con = con)
+
+      unclear <- dbGetQuery(con, query_unclear)
+      writeLogData("Count of remaining unclear data (groups): ", unclear)
 
       # create a new potassium table without the problematic measurements
 
@@ -271,8 +288,13 @@ removeRepeatMeasurements <- function(table) {
         SELECT *
         FROM {table}
         QUALIFY NOT (
-          COUNT(*) OVER (PARTITION BY patient, time, loinc) >= 2
-          AND issued < MAX(issued) OVER (PARTITION BY patient, time, loinc)
+          time IS NOT NULL
+          AND COUNT(*) OVER (PARTITION BY patient, time, loinc) >= 2
+          AND MAX(issued) OVER (PARTITION BY patient, time, loinc) IS NOT NULL
+          AND (
+            issued IS NULL
+            OR issued < MAX(issued) OVER (PARTITION BY patient, time, loinc)
+          )
         )
       ", .con = con)
 
@@ -289,7 +311,7 @@ removeExtremValues <- function(table) {
   # The idea is to remove only technical impossible values. Normal outliners
   # should be retained.
   # This calculates the MAD (median absolute deviation). A modified
-  # z-score threshold of 10 (vs. the conventional 3.5 for general outlier detection)
+  # z-score threshold of 15 (vs. the conventional 3.5 for general outlier detection)
   # is used to flag only extreme, implausible values.
   # The scaling factor 1.4826 makes MAD consistent with standard deviation.
 
@@ -336,6 +358,9 @@ removeExtremValues <- function(table) {
 
   if (any(implausible_values$n_implausible > 0)) {
     implausible_rows <- implausible_values[implausible_values$n_implausible > 0, ]
+
+    implausible_rows <- applyKAnonymity(implausible_rows,"n_implausible",
+                    c("loinc", "unit", "min_implausible", "max_implausible", "median_implausible"))
     writeLogData("Found implausible values (loinc, unit, count, min, max, median): ")
     for (i in seq_len(nrow(implausible_rows))) {
       writeLogData(implausible_rows[i, ], kanonymity = FALSE)
@@ -479,6 +504,7 @@ addCompareValue <- function(table, value = TRUE, value_norm = TRUE) {
     ", .con = con)
 
     comp_value <- dbGetQuery(con, query)
+    comp_value <- applyKAnonymity(comp_value,"n",c("loinc", "unit","comparator","value"))
     writeLogData("Found comparator/value/count: ",
                  comp_value, kanonymity = FALSE)
     writeLogData("For comparisons comparator values are treated as

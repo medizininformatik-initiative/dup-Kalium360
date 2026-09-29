@@ -137,8 +137,7 @@ assignEncounterContext <- function(encounter_available) {
   # Assign encounter context. For each potassium value, find all closed
   # IMP/SS encounters that contain the measurement time, then keep the
   # longest one; ties are broken via enc_id (deterministic random)
-  # only one row is taken per candidates. That ensures that also prevent
-  # row duplicates
+  # only one row is taken per candidates.
 
   query <- glue("
     CREATE OR REPLACE TEMP TABLE potassium_result AS
@@ -362,8 +361,8 @@ calculateTimelineMain <- function(availability) {
 
     availability_rows[[tbl]] <- data.frame(
       table_name    = tbl,
-      min_verfügbar = if (length(eligible) > 0) min(eligible) else as.Date(NA),
-      max_verfügbar = if (length(eligible) > 0) max(eligible) else as.Date(NA)
+      min_available = if (length(eligible) > 0) min(eligible) else as.Date(NA),
+      max_available = if (length(eligible) > 0) max(eligible) else as.Date(NA)
     )
 
     # apply k-Anonymity to counts per month (tbl is the count column)
@@ -651,6 +650,7 @@ matchLab <- function() {
 matchProcedures <- function() {
 
   # unclear means dialysis that have a start but no end timestamp.
+  # dialysis with start = end is also considered as unclear
   before_interval    <- sprintf("INTERVAL '%d hours'",12)
   unclear_interval <- sprintf("INTERVAL '%d hours'",12)
 
@@ -661,6 +661,7 @@ matchProcedures <- function() {
       FROM procedures AS d
       WHERE d.patient = p.patient
         AND d.period_end IS NOT NULL
+        AND d.period_start <> d.period_end
         AND p.time::TIMESTAMP BETWEEN
               d.period_start::TIMESTAMP AND d.period_end::TIMESTAMP
     ) THEN 1 ELSE 0 END AS dialyse_during
@@ -673,6 +674,7 @@ matchProcedures <- function() {
       FROM procedures AS d
       WHERE d.patient = p.patient
         AND d.period_end IS NOT NULL
+        AND d.period_start <> d.period_end
         AND d.period_end::TIMESTAMP <= p.time::TIMESTAMP
         AND d.period_end::TIMESTAMP >=
               p.time::TIMESTAMP - {DBI::SQL(before_interval)}
@@ -690,7 +692,7 @@ matchProcedures <- function() {
       SELECT 1
       FROM procedures AS d
       WHERE d.patient = p.patient
-        AND d.period_end IS NULL
+        AND (d.period_end IS NULL OR d.period_start = d.period_end)
         AND COALESCE(d.performed::TIMESTAMP, d.period_start::TIMESTAMP) BETWEEN
               p.time::TIMESTAMP - {DBI::SQL(unclear_interval)}
               AND p.time::TIMESTAMP
@@ -883,13 +885,13 @@ conditionEncounterTimeline <- function() {
             THEN 'day1'
           WHEN e.class <> 'AMB'
                AND c.time >= e.win_end - INTERVAL 1 DAY
-               AND c.time <  e.win_end
+               AND c.time <=  e.win_end
             THEN 'end_date'
           WHEN e.class <> 'AMB'
                AND c.time < LEAST(e.win_start + INTERVAL 3 DAY, e.win_end)
             THEN 'day2_3'
           WHEN e.class <> 'AMB'
-               AND c.time < e.win_end
+               AND c.time <= e.win_end
             THEN 'day4_to_end'
           WHEN c.time < e.win_end + INTERVAL 3 DAY
             THEN 'end_to_3d_after'
@@ -1082,8 +1084,8 @@ matchNextPotassium <- function() {
 
 matchProceduresAfter <- function() {
 
-  writeLogData("Evaluate potential treatment medication. A medication is
-               considered a match if it is given within 12 hours after measurement")
+  writeLogData("Evaluate subsequent dialysis. A dialysis is considered subsequent
+               if it is given within 12 hours after measurement.")
 
   after_interval <- sprintf("INTERVAL '%d hours'", 12)
 
@@ -1115,12 +1117,13 @@ matchProceduresAfter <- function() {
   ", .con = con)
   dialysis_after_counts <- dbGetQuery(con, count_query)
 
-  writeLogData("Evaluate subsequent dialysis. A dialysis is considered subsequent
-               if it is given within 12 hours after measurement.")
   writeLogData("Total subsequent dialysis: ", dialysis_after_counts)
 }
 
 matchMedicationAfter <- function() {
+
+  writeLogData("Evaluate potential treatment medication. A medication is
+               considered a match if it is given within 12 hours after measurement")
 
   # only medication given as potential treatment is relevant
   after_groups <- atc_groups[atc_groups$name %in% c("gluc", "insul", "hyperk"), ]
@@ -1300,10 +1303,10 @@ matchAndEvaluateSerumBlood <- function(availability, time_availability) {
   t_min <- NULL
   t_max <- NULL
   if (availability$conditions && availability$encounter) {
-    min_verfügbar <- time_availability$min_verfügbar[time_availability$table_name == "conditions"]
-    max_verfügbar <- time_availability$max_verfügbar[time_availability$table_name == "conditions"]
-    t_min <- format(min_verfügbar, "%Y-%m-01")
-    t_max <- format(max_verfügbar + months(1), "%Y-%m-01")
+    min_available <- time_availability$min_available[time_availability$table_name == "conditions"]
+    max_available <- time_availability$max_available[time_availability$table_name == "conditions"]
+    t_min <- format(min_available, "%Y-%m-01")
+    t_max <- format(max_available + months(1), "%Y-%m-01")
   }
 
   # init a list with all cohorts. Default is only all
@@ -1383,7 +1386,7 @@ checkEncounterReferences <- function(availability) {
     checkEncounterTypes("lab")
   }
 
-  if(availability$condition) {
+  if(availability$conditions) {
     checkEncounterTypes("conditions")
   }
 }

@@ -15,7 +15,11 @@ Der Fragebogen findet sich unter: [Umfrage Kalium360](https://kurzlinks.de/Kaliu
 
 ## Schritt 1: Datenausleitung mit der DUP-Pipeline
 
-Die benötigten Daten werden von dem lokalen FHIR-Server mit Hilfe der DUP-Pipeline ausgeleitet. Benötigt werden dabei die Schritte TORCH und FHIR-flattener. Die empfohlene Konfiguration für aether (aether-kalium-config.yml) liegt ebenso wie die aktuelle flatteningLookup.json dem Projekt bei.
+Die benötigten Daten werden von dem lokalen FHIR-Server mit Hilfe der DUP-Pipeline ausgeleitet. Benötigt werden dabei die Schritte TORCH und FHIR-flattener. Die empfohlene Konfiguration für aether (aether-kalium.yml) liegt ebenso wie die aktuelle flatteningLookup.json dem Projekt bei.
+Die DUP-Pipeline wird dann gestartet mit (bzw. analog für die andere CRTDL):
+   ```bash
+      aether pipeline start aether-kalium.yml Kalium360_CRTDL_complex_v1.json
+   ```
 
 ### CRTDL Varianten
 
@@ -75,26 +79,9 @@ Es werden folgende Output Dateien erzeugt:
    - timelineCovariates.csv: Counts der Covariates pro Monat
    - potassiumNext6h: Counts zur Veränderung der Kaliumwerte innerhalb von 6 Stunden 
    - compareSerumBlood.csv: statistischer Vergleich eng beeinander gemessener Serum und Blut Werte. Diese Datei ist optional und wird nur bei entsprechend vorhandenen Daten geschrieben. 
-   - covariatesCounts.csv: Counts zu der Co-occurrence auffälliger Kaliumwerte und den Covariaten getrennt nach unterschiedlichn Kohorten.
-   - covariatesRegression: Ergebnisse der linearen Regressionen zu dem Zusammenhang von Kaliumwerten und den Covariaten sowie dem Einfluss von Alter und Geschlecht. 
+   - covariatesCounts.csv: Counts zu der Co-occurrence auffälliger Kaliumwerte und den Covariaten getrennt nach unterschiedlichen Gruppen.
+   - covariatesRegression: Ergebnisse der linearen Regressionen zu dem Zusammenhang von Kaliumwerten und den Covariaten. 
 
-
-## Alternative: starten ohne Docker
-
-1. R (≥ 4.4) installieren und in diesem Ordner ein Terminal öffnen.
-2. Benötigte Pakete installieren:
-
-   ```r
-   install.packages(c("DBI", "duckdb", "glue", "dplyr", "purrr",
-                       "lubridate", "tibble", "biglm"))
-   ```
-
-3. In `.env` die Pfade anpassen sowie die Informationen in der .config angeben (wie mit Docker, siehe oben).
-4. Pipeline starten:
-
-   ```bash
-   Rscript Main.R
-   ```
 
 ## Hinweis zur unit_conversion.csv
 

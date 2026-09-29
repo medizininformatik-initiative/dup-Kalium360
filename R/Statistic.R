@@ -10,23 +10,23 @@ descriptiveStatisticMain <- function(availability, time_availability) {
   result_2 <- descriptiveStatistic(availability, time_availability,
                                    age_and = "", result_col = "result_detail")
 
-  writeLogData("Cohort all done")
+  writeLogData("Counts for all potassium measurement done")
 
   result_3 <- descriptiveStatistic(availability, time_availability,
                                    age_and = "AND age >= 18", result_col = "result")
-  writeLogData("Cohort adults done")
+  writeLogData("Adults only done")
 
   result_4 <- descriptiveStatistic(availability, time_availability,
                                    age_and = "AND age < 18", result_col = "result")
-  writeLogData("Cohort children done")
+  writeLogData("Children only done")
 
   result_5 <- descriptiveStatistic(availability, time_availability,
                                    age_and = "AND gender = 'female'", result_col = "result")
-  writeLogData("Cohort female done")
+  writeLogData("Female only done")
 
   result_6 <- descriptiveStatistic(availability, time_availability,
                                    age_and = "AND gender = 'male'", result_col = "result")
-  writeLogData("Cohort male done")
+  writeLogData("Male only done")
 
   all_results <- list(result_1, result_2, result_3, result_4, result_5, result_6)
 
@@ -115,13 +115,13 @@ descriptiveStatistic <- function(availability, time_availability,
   if(availability$medication) {
 
     # get the timestamps for reasonabe available data
-    min_verfügbar <- time_availability$min_verfügbar[time_availability$table_name == "medadm_all_start"]
-    max_verfügbar <- time_availability$max_verfügbar[time_availability$table_name == "medadm_all_start"]
+    min_available <- time_availability$min_available[time_availability$table_name == "medadm_all_start"]
+    max_available <- time_availability$max_available[time_availability$table_name == "medadm_all_start"]
 
     # the timestamp contain always the first day of the month. To do valid
     # comparisons later on add +1 month to the max timestamp
-    t_min <- format(min_verfügbar, "%Y-%m-01")
-    t_max <- format(max_verfügbar + months(1), "%Y-%m-01")
+    t_min <- format(min_available, "%Y-%m-01")
+    t_max <- format(max_available + months(1), "%Y-%m-01")
 
     # get atc col names
     atc_cols <- unique(atc_groups$name)
@@ -312,10 +312,10 @@ descriptiveStatistic <- function(availability, time_availability,
   if (availability$procedures) {
 
     # get the timestamps for reasonable available data
-    min_verfügbar <- time_availability$min_verfügbar[time_availability$table_name == "procedures_start"]
-    max_verfügbar <- time_availability$max_verfügbar[time_availability$table_name == "procedures_start"]
-    t_min <- format(min_verfügbar, "%Y-%m-01")
-    t_max <- format(max_verfügbar + months(1), "%Y-%m-01")
+    min_available <- time_availability$min_available[time_availability$table_name == "procedures_start"]
+    max_available <- time_availability$max_available[time_availability$table_name == "procedures_start"]
+    t_min <- format(min_available, "%Y-%m-01")
+    t_max <- format(max_available + months(1), "%Y-%m-01")
 
     # define the three dialysis columns
     proc_cols <- c("dialyse_during", "dialyse_before", "dialyse_unclear", "dialyse_after")
@@ -371,12 +371,12 @@ descriptiveStatistic <- function(availability, time_availability,
 
   if(availability$conditions) {
     # get the timestamps for reasonabe available data
-    min_verfügbar <- time_availability$min_verfügbar[time_availability$table_name == "conditions"]
-    max_verfügbar <- time_availability$max_verfügbar[time_availability$table_name == "conditions"]
+    min_available <- time_availability$min_available[time_availability$table_name == "conditions"]
+    max_available <- time_availability$max_available[time_availability$table_name == "conditions"]
     # the timestamp contain always the first day of the month. To do valid
     # comparisons later on add +1 month to the max timestamp
-    t_min <- format(min_verfügbar, "%Y-%m-01")
-    t_max <- format(max_verfügbar + months(1), "%Y-%m-01")
+    t_min <- format(min_available, "%Y-%m-01")
+    t_max <- format(max_available + months(1), "%Y-%m-01")
     # get icd col names
     cond_cols <- unique(icd_groups$name)
 
@@ -420,7 +420,7 @@ descriptiveStatistic <- function(availability, time_availability,
     counts_alone <- count_condition("AND first = 1 AND alone_cond = 1",
                                     kohorte = "first_alone")
     # bind all together
-    counts_combined <- bind_rows(counts_alle, counts_no_amb, counts_first)
+    counts_combined <- bind_rows(counts_alle, counts_no_amb, counts_first, counts_alone)
 
     # apply k-Anonymity
     counts_combined <- applyKAnonymity(counts_combined,
@@ -438,14 +438,13 @@ descriptiveStatistic <- function(availability, time_availability,
   return(final_counts)
 }
 
+
 ##### linear regression ####
 
 linearRegression <- function(availability, time_availability) {
 
   writeLogData("Measurements with unknown gender or age are excluded. Only
-               time windows with reasonable available data are considered.
-               If possible a basic model as well ans gender and age interaction
-               models are applied.")
+               time windows with reasonable available data are considered")
 
   all_results <- list()
 
@@ -453,13 +452,13 @@ linearRegression <- function(availability, time_availability) {
   getWindow <- function(table_name) {
     row <- time_availability[time_availability$table_name == table_name, ]
     list(
-      t_min = format(row$min_verfügbar, "%Y-%m-01"),
-      t_max = format(row$max_verfügbar + months(1), "%Y-%m-01")
+      t_min = format(row$min_available, "%Y-%m-01"),
+      t_max = format(row$max_available + months(1), "%Y-%m-01")
     )
   }
 
   # filter out patients with unknown gender and/or unknown age
-  base_filter <- paste0("AND gender IN ('male', 'female') AND age IS NOT NULL")
+  base_filter <- "AND gender IN ('male', 'female') AND age IS NOT NULL"
 
   # for all execpt lab we only want the first measurement of IMP cases
   stationary_filter <- paste0(base_filter, " AND first = 1")
@@ -492,16 +491,33 @@ linearRegression <- function(availability, time_availability) {
       cols_sql <- paste(atc_cols, collapse = ", ")
 
       query <- glue_sql("
-        SELECT value_norm, gender, age,
-        CASE WHEN age < 18 THEN 'child' ELSE 'adult' END AS age_group,
-        {DBI::SQL(cols_sql)}
+        SELECT value_norm, gender, age, {DBI::SQL(cols_sql)}
         FROM potassium_result
         WHERE time::TIMESTAMP >= {w$t_min}::TIMESTAMP
           AND time::TIMESTAMP <  {w$t_max}::TIMESTAMP
           {DBI::SQL(stationary_filter)}
       ", .con = con)
-      res <- runLinearRegressionWithInteractions(query, atc_cols, "medication")
+      res <- runLinearRegressionMain(query, atc_cols, "medication")
       all_results <- c(all_results, list(res))
+
+      # Sensitivity analysis: the same again but for all measurements
+      # cluster by encounter. For AMB take obs_id as encounter (which makes
+      # them single encounters). _imp and _amb prevents problems
+      query_all <- glue_sql("
+        SELECT value_norm, gender, age,
+          CASE
+            WHEN enc_id IS NOT NULL THEN enc_id::VARCHAR || '_imp'
+            ELSE obs_id::VARCHAR || '_amb'
+          END AS cluster_id,
+          {DBI::SQL(cols_sql)}
+        FROM potassium_result
+        WHERE time::TIMESTAMP >= {w$t_min}::TIMESTAMP
+          AND time::TIMESTAMP <  {w$t_max}::TIMESTAMP
+          {DBI::SQL(base_filter)}
+      ", .con = con)
+      res_all <- runLinearRegressionMain(query_all, atc_cols, "medication_all",
+                                         cluster_col = "cluster_id")
+      all_results <- c(all_results, list(res_all))
     } else {
       writeLogData("Skipping medication")
     }
@@ -533,7 +549,6 @@ linearRegression <- function(availability, time_availability) {
       if (length(valid_lab_col) > 0) {
         query <- glue_sql("
           SELECT value_norm, gender, age,
-          CASE WHEN age < 18 THEN 'child' ELSE 'adult' END AS age_group,
           {DBI::SQL(value_col)}
           FROM potassium_result
           WHERE time::TIMESTAMP >= {w$t_min}::TIMESTAMP
@@ -541,9 +556,27 @@ linearRegression <- function(availability, time_availability) {
             AND {DBI::SQL(value_col)} IS NOT NULL
             {DBI::SQL(lab_filter)}
         ", .con = con)
-        res <- runLinearRegressionWithInteractions(query, valid_lab_col,paste0("lab_", label),
-                                                   covariate_is_continuous = TRUE)
+        res <- runLinearRegressionMain(query, valid_lab_col,paste0("lab_", label))
         all_results <- c(all_results, list(res))
+
+        # Sensitivity
+        query_all <- glue_sql("
+          SELECT value_norm, gender, age,
+          CASE
+            WHEN enc_id IS NOT NULL THEN enc_id::VARCHAR || '_imp'
+            ELSE obs_id::VARCHAR || '_amb'
+          END AS cluster_id,
+          {DBI::SQL(value_col)}
+          FROM potassium_result
+          WHERE time::TIMESTAMP >= {w$t_min}::TIMESTAMP
+            AND time::TIMESTAMP <  {w$t_max}::TIMESTAMP
+            AND {DBI::SQL(value_col)} IS NOT NULL
+            {DBI::SQL(base_filter)}
+        ", .con = con)
+        res_all <- runLinearRegressionMain(
+          query_all, valid_lab_col, paste0("lab_", label, "_all"),
+          cluster_col = "cluster_id")
+        all_results <- c(all_results, list(res_all))
       }else {
         writeLogData(paste0("Skipping ", label))
       }
@@ -559,22 +592,38 @@ linearRegression <- function(availability, time_availability) {
     for (col in proc_cols) {
 
       valid_proc_col <- getValidCovariates(cols = col,
-        start_time = w$t_min, end_time = w$t_max,k_value = k_value,
-        stationary_filter, isContinuous = FALSE)
+                                           start_time = w$t_min, end_time = w$t_max,k_value = k_value,
+                                           stationary_filter, isContinuous = FALSE)
 
       if(length(valid_proc_col) > 0) {
-      query <- glue_sql("
-        SELECT value_norm, gender, age,
-        CASE WHEN age < 18 THEN 'child' ELSE 'adult' END AS age_group,
-        {DBI::SQL(col)}
+        query <- glue_sql("
+        SELECT value_norm, gender, age, {DBI::SQL(col)}
         FROM potassium_result
         WHERE time::TIMESTAMP >= {w$t_min}::TIMESTAMP
           AND time::TIMESTAMP <  {w$t_max}::TIMESTAMP
           {DBI::SQL(stationary_filter)}
       ", .con = con)
-      res <- runLinearRegressionWithInteractions(query,valid_proc_col,
-                                    paste0("procedures_", col))
-      all_results <- c(all_results, list(res))
+        res <- runLinearRegressionMain(query,valid_proc_col,
+                                       paste0("procedures_", col))
+        all_results <- c(all_results, list(res))
+
+        # Sensitivity
+        query_all <- glue_sql("
+          SELECT value_norm, gender, age,
+          CASE
+            WHEN enc_id IS NOT NULL THEN enc_id::VARCHAR || '_imp'
+            ELSE obs_id::VARCHAR || '_amb'
+          END AS cluster_id,
+            {DBI::SQL(col)}
+          FROM potassium_result
+          WHERE time::TIMESTAMP >= {w$t_min}::TIMESTAMP
+            AND time::TIMESTAMP <  {w$t_max}::TIMESTAMP
+            {DBI::SQL(base_filter)}
+        ", .con = con)
+        res_all <- runLinearRegressionMain(
+          query_all, valid_proc_col, paste0("procedures_", col, "_all"),
+          cluster_col = "cluster_id")
+        all_results <- c(all_results, list(res_all))
       } else {
         writeLogData(paste0("Skipping ", col))
       }
@@ -601,17 +650,32 @@ linearRegression <- function(availability, time_availability) {
     if (length(valid_cond_cols) > 0) {
       cols_sql <- paste(valid_cond_cols, collapse = ", ")
       query <- glue_sql("
-        SELECT value_norm, gender, age,
-        CASE WHEN age < 18 THEN 'child' ELSE 'adult' END AS age_group,
-        {DBI::SQL(cols_sql)}
+        SELECT value_norm, gender, age, {DBI::SQL(cols_sql)}
         FROM potassium_result
         WHERE time::TIMESTAMP >= {w$t_min}::TIMESTAMP
           AND time::TIMESTAMP <  {w$t_max}::TIMESTAMP
           {DBI::SQL(stationary_filter)}
       ", .con = con)
 
-      res <- runLinearRegressionWithInteractions(query, valid_cond_cols, "conditions")
+      res <- runLinearRegressionMain(query, valid_cond_cols, "conditions")
       all_results <- c(all_results, list(res))
+
+      # Sensitivity
+      query_all <- glue_sql("
+        SELECT value_norm, gender, age,
+          CASE
+            WHEN enc_id IS NOT NULL THEN enc_id::VARCHAR || '_imp'
+            ELSE obs_id::VARCHAR || '_amb'
+          END AS cluster_id,
+          {DBI::SQL(cols_sql)}
+        FROM potassium_result
+        WHERE time::TIMESTAMP >= {w$t_min}::TIMESTAMP
+          AND time::TIMESTAMP <  {w$t_max}::TIMESTAMP
+          {DBI::SQL(base_filter)}
+      ", .con = con)
+      res_all <- runLinearRegressionMain(
+        query_all, valid_cond_cols, "conditions_all", cluster_col = "cluster_id")
+      all_results <- c(all_results, list(res_all))
     } else {
       writeLogData("Skipping conditions")
     }
@@ -626,14 +690,13 @@ linearRegression <- function(availability, time_availability) {
   all_results <- c(all_results, list(res_next_timing))
 
   final_results <- bind_rows(all_results)
-  final_results <- addAdjustedPValues(final_results)
 
   return(final_results)
 }
 
 runLinearRegressionMain <- function(query, covariate_cols, source_name,
                                     row_threshold = 500000, outcome = "value_norm",
-                                    factor_levels = list(), interaction_var = NULL) {
+                                    factor_levels = list(), cluster_col = NULL) {
 
   # count all relevent rows
   count_query <- paste0("SELECT COUNT(*) AS n FROM (", query, ") AS sub")
@@ -661,61 +724,23 @@ runLinearRegressionMain <- function(query, covariate_cols, source_name,
     data <- dbGetQuery(con, query)
     res <- runLinearRegression(data, covariate_cols, source_name,
                                outcome = outcome, factor_levels = factor_levels,
-                               mean_age = mean_age, interaction_var = interaction_var)
+                               mean_age = mean_age, cluster_col = cluster_col)
     rm(data)
     gc()
     return(res)
   } else {
     return(runBigLinearRegression(query, covariate_cols, source_name,
                                   outcome = outcome, factor_levels = factor_levels,
-                                  mean_age = mean_age, interaction_var = interaction_var))
+                                  mean_age = mean_age, cluster_col = cluster_col))
   }
-}
-
-# interaction_var = NULL     -> outcome ~ gender + age + covariates (original model)
-# interaction_var = "gender" -> outcome ~ gender * (covariates) + age
-# interaction_var = "age_group" -> outcome ~ gender + age_group * (covariates)
-# gives the model and a human readable string
-
-buildRegressionFormula <- function(outcome, covariate_cols, interaction_var = NULL) {
-
-  covar_term <- paste(paste0("`", covariate_cols, "`"), collapse = " + ")
-  covar_plain <- paste(covariate_cols, collapse = " + ")
-
-  if (is.null(interaction_var)) {
-    formula_reg <- as.formula(paste(outcome, "~ gender + age +", covar_term))
-    model_string <- paste0(outcome, " ~ gender + age + ", covar_plain)
-
-  } else if (interaction_var == "gender") {
-    formula_reg <- as.formula(paste0(
-      outcome, " ~ gender * (", covar_term, ") + age"))
-    model_string <- paste0(
-      outcome, " ~ gender * (", covar_plain, ") + age")
-
-  } else if (interaction_var == "age_group") {
-    formula_reg <- as.formula(paste0(
-      outcome, " ~ gender + age_group * (", covar_term, ")"))
-    model_string <- paste0(
-      outcome, " ~ gender + age_group * (", covar_plain, ")")
-
-  } else {
-    stop(paste0("Unknown interaction_var: ", interaction_var))
-  }
-
-  result_list <- list(formula = formula_reg, model_string = model_string)
-  return(result_list)
 }
 
 runLinearRegression <- function(data, covariate_cols, source_name,
                                 outcome = "value_norm", factor_levels = list(),
-                                mean_age = NULL, interaction_var = NULL) {
+                                mean_age = NULL, cluster_col = NULL) {
 
   # fix gender order so that we always have the same reference
   data$gender <- factor(data$gender, levels = c("male", "female"))
-
-  if ("age_group" %in% names(data)) {
-    data$age_group <- factor(data$age_group, levels = c("adult", "child"))
-  }
 
   # apply requested factor releveling (e.g. result: reference level = "N")
   # before fitting, so the reference category is explicit and deterministic
@@ -731,10 +756,14 @@ runLinearRegression <- function(data, covariate_cols, source_name,
     data$age <- data$age - mean_age
   }
 
-  # build regression formula
-  built <- buildRegressionFormula(outcome, covariate_cols, interaction_var)
-  formula_reg  <- built$formula
-  model_string <- built$model_string
+  # build linear regression with base values + covariates_cols
+  formula_reg <- as.formula(
+    paste(outcome, "~ gender + age +",
+          paste(paste0("`", covariate_cols, "`"), collapse = " + ")))
+
+  # human-readable model string
+  model_string <- paste0(outcome, " ~ gender + age + ",
+                         paste(covariate_cols, collapse = " + "))
 
   n_total <- nrow(data)
 
@@ -760,13 +789,42 @@ runLinearRegression <- function(data, covariate_cols, source_name,
   }
 
   coefs <- as.data.frame(summary(model)$coefficients)
-  coefs$term      <- rownames(coefs)
+  term_names <- rownames(coefs)
   rownames(coefs) <- NULL
-  names(coefs) <- c("estimate", "std_error", "t_value", "p_value", "term")
+  names(coefs) <- c("estimate", "std_error", "t_value", "p_value")
+
+  se_type   <- "normal"
+  deff_info <- NULL
+
+  if (!is.null(cluster_col) && cluster_col %in% names(data)) {
+
+    used_rows  <- as.integer(rownames(model$model))
+    cluster_id <- as.character(data[[cluster_col]][used_rows])
+    resid_vec  <- residuals(model)
+
+    sum_e_by_cluster <- tapply(resid_vec, cluster_id, sum)
+    n_by_cluster      <- tapply(resid_vec, cluster_id, length)
+    sst               <- sum(resid_vec^2)
+
+    deff_info <- clusterDeffFromAccum(
+      sst, n_by_cluster, sum_e_by_cluster, length(resid_vec))
+
+    coefs$std_error <- coefs$std_error * sqrt(deff_info$deff)
+    coefs$t_value   <- coefs$estimate / coefs$std_error
+    coefs$p_value   <- 2 * pt(-abs(coefs$t_value), df = deff_info$df)
+
+    se_type <- "cluster_deff"
+  }
+
+  coefs$term    <- term_names
   coefs$source  <- source_name
   coefs$n_used  <- n_used
   coefs$n_total <- n_total
   coefs$regression_type <- "normal"
+  coefs$se_type    <- se_type
+  coefs$deff       <- if (!is.null(deff_info)) deff_info$deff else NA_real_
+  coefs$icc        <- if (!is.null(deff_info)) deff_info$rho else NA_real_
+  coefs$n_clusters <- if (!is.null(deff_info)) deff_info$n_clusters else NA_integer_
   coefs$mean_age <- mean_age
   coefs$model <- model_string
 
@@ -777,12 +835,14 @@ runLinearRegression <- function(data, covariate_cols, source_name,
 
 runBigLinearRegression <- function(query, covariate_cols, source_name,
                                    outcome = "value_norm", factor_levels = list(),
-                                   mean_age = NULL, interaction_var = NULL) {
+                                   mean_age = NULL, cluster_col = NULL) {
 
-  # build regression formula
-  built <- buildRegressionFormula(outcome, covariate_cols, interaction_var)
-  formula_reg  <- built$formula
-  model_string <- built$model_string
+  formula_reg <- as.formula(
+    paste( outcome, "~ gender + age +",
+           paste(paste0("`", covariate_cols, "`"), collapse = " + ")))
+
+  model_string <- paste0(outcome, " ~ gender + age + ",
+                         paste(covariate_cols, collapse = " + "))
 
   rs <- dbSendQuery(con, query)
 
@@ -800,11 +860,6 @@ runBigLinearRegression <- function(query, covariate_cols, source_name,
     # make sure that in every chunk are male and female
     data_chunk$gender <- factor(data_chunk$gender, levels = c("male", "female"))
 
-    # same for age_group, if present in this query
-    if ("age_group" %in% names(data_chunk)) {
-      data_chunk$age_group <- factor(data_chunk$age_group, levels = c("adult", "child"))
-    }
-
     # apply requested factor releveling (e.g. result: reference level = "N")
     # consistently in every chunk, otherwise biglm's update() would break
     # on chunks with differing/missing factor levels
@@ -816,7 +871,6 @@ runBigLinearRegression <- function(query, covariate_cols, source_name,
     if (!is.null(mean_age) && !is.na(mean_age)) {
       data_chunk$age <- data_chunk$age - mean_age
     }
-
 
     n_total <- n_total + nrow(data_chunk)
 
@@ -848,17 +902,40 @@ runBigLinearRegression <- function(query, covariate_cols, source_name,
   coefs$term <- rownames(coefs)
   rownames(coefs) <- NULL
 
+  se_type   <- "normal"
+  deff_info <- NULL
+
+  # second run for cluster by encounter
+  if (!is.null(cluster_col)) {
+    beta <- coefs$estimate
+    names(beta) <- coefs$term
+
+    deff_info <- computeBigClusterDeff(
+      query, formula_reg, beta, outcome, factor_levels, mean_age, cluster_col)
+
+    if (!is.null(deff_info)) {
+      coefs$std_error <- coefs$std_error * sqrt(deff_info$deff)
+      coefs$t_value   <- coefs$estimate / coefs$std_error
+      coefs$p_value   <- 2 * pt(-abs(coefs$t_value), df = deff_info$df)
+      se_type <- "cluster_deff"
+    }
+  }
+
   coefs$source  <- source_name
   coefs$n_used  <- n_total
   coefs$n_total <- n_total
   coefs$regression_type <- "big"
+  coefs$se_type    <- se_type
+  coefs$deff       <- if (!is.null(deff_info)) deff_info$deff else NA_real_
+  coefs$icc        <- if (!is.null(deff_info)) deff_info$rho else NA_real_
+  coefs$n_clusters <- if (!is.null(deff_info)) deff_info$n_clusters else NA_integer_
   coefs$mean_age <- mean_age
   coefs$model    <- model_string
 
   # get the same column order as for normal lineare regression
   coefs <- coefs[, c("estimate", "std_error", "t_value", "p_value",
-                      "term", "source", "n_used", "n_total", "regression_type",
-                     "mean_age", "model")]
+                     "term", "source", "n_used", "n_total", "regression_type",
+                     "se_type", "deff", "icc", "n_clusters", "mean_age", "model")]
 
   if (n_total < k_value) {
     writeLogData(paste0("Big linear regression for: ", source_name,
@@ -952,7 +1029,7 @@ nextKTimingRegression <- function() {
   ", .con = con)
   followup_counts <- dbGetQuery(con, query_followUps)
   writeLogData("Measurements with a follow-up/ no follow-up/ too late follow-up: ",
-    followup_counts)
+               followup_counts)
 
 
   all_results <- list()
@@ -984,9 +1061,7 @@ nextKTimingRegression <- function() {
         paste0("next_k_timing_categorical_", cohort_suffix))) {
 
         query_cat <- glue_sql("
-          SELECT next_hours, gender, age,
-          CASE WHEN age < 18 THEN 'child' ELSE 'adult' END AS age_group,
-          result
+          SELECT next_hours, gender, age, result
           FROM potassium_result
           {base_filter}
         ", .con = con)
@@ -1017,21 +1092,24 @@ nextKTimingRegression <- function() {
         paste0("next_k_occurred_", cohort_suffix))) {
 
       query_occurred <- glue_sql("
-        SELECT next_flag, gender, age,
-        CASE WHEN age < 18 THEN 'child' ELSE 'adult' END AS age_group,
-        result
+        SELECT
+          CASE WHEN next_flag = 1 AND next_hours <= {max_hours}
+               THEN 1 ELSE 0 END AS next_occurred,
+          gender, age, result
         FROM potassium_result
         {base_filter_occurred}
       ", .con = con)
 
       res_occurred <- runLinearRegressionMain(
         query_occurred, "result", paste0("next_k_occurred_", cohort_suffix),
-        outcome = "next_flag",
+        outcome = "next_occurred",
         factor_levels = list(result = c("N", "L", "H"))
       )
     }
+
     return(list(res_cat, res_num, res_occurred))
   }
+
 
   # all measurements
   all_results <- run_cohort("", "all")
@@ -1039,8 +1117,6 @@ nextKTimingRegression <- function() {
   all_results <- c(all_results, run_cohort("AND first = 1", "only_first"))
 
   final_results <- bind_rows(all_results)
-  final_results <- addAdjustedPValues(final_results)
-
   return(final_results)
 }
 
@@ -1069,6 +1145,7 @@ hasValidFactorLevels <- function(base_filter_sql, col, source_name) {
       paste(sparse, collapse = ", ")))
     return(FALSE)
   }
+
   return(TRUE)
 }
 
@@ -1096,14 +1173,12 @@ runAfterOutcomeRegression <- function(outcome_col, label, w, extra_filter_sql) {
       base_filter, "result", paste0(label, "_categorical"))) {
 
       query_cat <- glue_sql("
-        SELECT {`outcome_col`}, gender, age,
-        CASE WHEN age < 18 THEN 'child' ELSE 'adult' END AS age_group,
-        result
+        SELECT {`outcome_col`}, gender, age, result
         FROM potassium_result
         {base_filter}
       ", .con = con)
 
-      res_cat <- runLinearRegressionWithInteractions(
+      res_cat <- runLinearRegressionMain(
         query_cat, "result", paste0(label, "_categorical"),
         outcome = outcome_col,
         factor_levels = list(result = c("N", "L", "H"))
@@ -1112,137 +1187,110 @@ runAfterOutcomeRegression <- function(outcome_col, label, w, extra_filter_sql) {
     }
   }
 
-  return(addAdjustedPValues(bind_rows(all_results)))
+  return(bind_rows(all_results))
 }
 
-# checks whether, within each level of interaction_var, the covariate col
-# has enough non-degenerate data to support an interaction term:
-# - categorical/binary col: every (interaction_var level x col level)
-#   combination needs >= k_value rows, and every interaction_var group
-#   needs to see more than one level of col
-# - continuous col: every interaction_var group needs >= k_value non-NULL
-#   rows and non-zero variance of col
-hasValidInteractionCells <- function(query, interaction_var, col,
-                                     isContinuous = FALSE) {
+# Scales all standard errors from a fitted regression by a single factor (ICC)
+# this is to correct for non-independence of repeated observations within the
+# same cluster (encounter)
+# This is without computing a full cluster-robust (sandwich) covariance matrix
+# but we can use it lm and the chunked biglm in the same way
 
-  if (isContinuous) {
-    check_query <- paste0(
-      "SELECT ", interaction_var, " AS grp, COUNT(", col, ") AS n, ",
-      "STDDEV(", col, ") AS sd_value FROM (", query, ") AS sub ",
-      "WHERE ", col, " IS NOT NULL GROUP BY ", interaction_var)
-    check_result <- dbGetQuery(con, check_query)
+clusterDeffFromAccum <- function(sst, cluster_n, cluster_sum_e, n_total) {
 
-    bad <- check_result[
-      check_result$n < k_value | is.na(check_result$sd_value) |
-        check_result$sd_value == 0, ]
+  n_clusters <- length(cluster_n)
 
-    if (nrow(bad) > 0) {
-      return(list(valid = FALSE, reason = "insufficient/constant data"))
-    }
-    return(list(valid = TRUE, reason = NA_character_))
-
-  } else {
-    check_query <- paste0(
-      "SELECT ", interaction_var, " AS grp, ", col, " AS level, COUNT(*) AS n ",
-      "FROM (", query, ") AS sub GROUP BY ", interaction_var, ", ", col)
-    check_result <- dbGetQuery(con, check_query)
-
-    sparse <- check_result[check_result$n < k_value, ]
-    if (nrow(sparse) > 0) {
-      return(list(valid = FALSE, reason = "sparse cell(s) below k_value"))
-    }
-
-    levels_per_group <- table(check_result$grp)
-    if (any(levels_per_group < 2)) {
-      return(list(valid = FALSE, reason = "not every group has >1 level"))
-    }
-    return(list(valid = TRUE, reason = NA_character_))
+  # zu wenige Cluster/Beobachtungen fuer eine stabile Schaetzung -> keine
+  # Anpassung (deff = 1 heisst: Standardfehler bleiben wie beim normalen Fit)
+  if (n_clusters < 2 || n_total <= n_clusters) {
+    return(list(deff = 1, rho = 0, n_clusters = n_clusters,
+                df = max(n_total - 1, 1)))
   }
+
+  ssb <- sum(cluster_sum_e^2 / cluster_n)   # Between-Cluster-Quadratsumme
+  ssw <- sst - ssb                          # Within-Cluster-Quadratsumme
+
+  msb <- ssb / (n_clusters - 1)
+  msw <- ssw / (n_total - n_clusters)
+
+  n_bar <- n_total / n_clusters
+
+  denom <- msb + (n_bar - 1) * msw
+  rho <- if (denom > 0) (msb - msw) / denom else 0
+  rho <- max(0, min(1, rho))          # negative/instabile Schaetzungen kappen
+
+  deff <- 1 + (n_bar - 1) * rho
+
+  list(deff = deff, rho = rho, n_clusters = n_clusters, df = n_clusters - 1)
 }
 
-runLinearRegressionWithInteractions <- function(query, covariate_cols, source_name,
-                                                row_threshold = 500000,
-                                                outcome = "value_norm",
-                                                factor_levels = list(),
-                                                covariate_is_continuous = FALSE,
-                                                add_interactions = TRUE) {
 
-  # instead of writing interaction skipping to log, write a skip note to output
-  makeSkipRow <- function(skip_source, term, note) {
-    data.frame(source = skip_source, term = term, regression_type = "skipped",
-               note = note, stringsAsFactors = FALSE)
-  }
+# second run for biglm when final coefficients are known to get data to run
+# clusterDeffFromAccum
+computeBigClusterDeff <- function(query, formula_reg, beta, outcome,
+                                  factor_levels, mean_age, cluster_col) {
 
-  all_results <- list(
-    runLinearRegressionMain(query, covariate_cols, source_name,
-                            row_threshold = row_threshold, outcome = outcome,
-                            factor_levels = factor_levels)
-  )
+  rs <- dbSendQuery(con, query)
 
-  if (add_interactions) {
-    for (interaction_var in c("gender", "age_group")) {
+  cluster_acc <- data.frame(cluster = character(0), n = numeric(0),
+                            sum_e = numeric(0))
+  sst_total <- 0
+  n_total   <- 0
 
-      interaction_source <- paste0(source_name, "_", interaction_var, "_interaction")
+  repeat {
+    data_chunk <- dbFetch(rs, n = 100000)
+    if (nrow(data_chunk) == 0) break
 
-      checks <- lapply(covariate_cols, function(col) {
-        hasValidInteractionCells(query, interaction_var, col,
-                                 isContinuous = covariate_is_continuous)
-      })
-      names(checks) <- covariate_cols
-
-      is_valid <- vapply(checks, function(x) x$valid, logical(1))
-      ok_cols <- covariate_cols[is_valid]
-
-      if (any(!is_valid)) {
-        skipped <- covariate_cols[!is_valid]
-        reasons <- vapply(checks[!is_valid], function(x) x$reason, character(1))
-        note <- paste0(sum(!is_valid), " column(s) skipped: ",
-                       paste0(skipped, " (", reasons, ")", collapse = "; "))
-        all_results <- c(all_results, list(
-          makeSkipRow(interaction_source, "SKIPPED_COLUMNS", note)
-        ))
-      }
-
-      if (length(ok_cols) > 0) {
-        res <- runLinearRegressionMain(
-          query, ok_cols, interaction_source,
-          row_threshold = row_threshold, outcome = outcome,
-          factor_levels = factor_levels, interaction_var = interaction_var)
-        all_results <- c(all_results, list(res))
-      } else {
-        all_results <- c(all_results, list(
-          makeSkipRow(interaction_source, "SKIPPED_MODEL",
-                      "no covariate columns passed hasValidInteractionCells")
-        ))
-      }
+    # same as for the fit so that it matches the used coefficients
+    data_chunk$gender <- factor(data_chunk$gender, levels = c("male", "female"))
+    for (col in names(factor_levels)) {
+      data_chunk[[col]] <- factor(data_chunk[[col]], levels = factor_levels[[col]])
     }
+    if (!is.null(mean_age) && !is.na(mean_age)) {
+      data_chunk$age <- data_chunk$age - mean_age
+    }
+
+    vars_needed <- unique(c(all.vars(formula_reg), cluster_col))
+    chunk_sub <- na.omit(data_chunk[, vars_needed, drop = FALSE])
+
+    if (nrow(chunk_sub) > 0) {
+      X_chunk <- model.matrix(formula_reg, chunk_sub)
+      y_chunk <- as.numeric(chunk_sub[[outcome]])
+
+      # use only terms that are inside this chunk model-matrix
+      common_terms <- intersect(colnames(X_chunk), names(beta))
+      y_hat   <- as.numeric(X_chunk[, common_terms, drop = FALSE] %*% beta[common_terms])
+      e_chunk <- y_chunk - y_hat
+
+      cluster_id <- as.character(chunk_sub[[cluster_col]])
+      n_by <- tapply(e_chunk, cluster_id, length)
+      s_by <- tapply(e_chunk, cluster_id, sum)
+
+      chunk_df <- data.frame(cluster = names(n_by), n = as.numeric(n_by),
+                             sum_e = as.numeric(s_by[names(n_by)]))
+
+      cluster_acc <- merge(cluster_acc, chunk_df, by = "cluster", all = TRUE,
+                           suffixes = c("", ".new"))
+      cluster_acc[is.na(cluster_acc)] <- 0
+      cluster_acc$n     <- cluster_acc$n + cluster_acc$n.new
+      cluster_acc$sum_e <- cluster_acc$sum_e + cluster_acc$sum_e.new
+      cluster_acc <- cluster_acc[, c("cluster", "n", "sum_e")]
+
+      sst_total <- sst_total + sum(e_chunk^2)
+      n_total   <- n_total + length(e_chunk)
+    }
+
+    rm(data_chunk)
+    gc()
   }
 
-  bind_rows(all_results)
-}
+  dbClearResult(rs)
 
-# adds a p_adjusted column (Benjamini-Hochberg)
-addAdjustedPValues <- function(df) {
-
-  if (is.null(df) || nrow(df) == 0) return(df)
-
-  control_terms <- c("(Intercept)", "genderfemale", "age", "age_groupchild")
-
-  df$term_category <- ifelse(
-    df$term %in% control_terms, "control",
-    ifelse(grepl(":", df$term, fixed = TRUE), "interaction", "main"))
-
-  df$p_adjusted <- NA_real_
-
-  testable <- df$term_category != "control"
-  if (any(testable)) {
-    df$p_adjusted[testable] <- ave(
-      df$p_value[testable],
-      df$source[testable], df$term_category[testable],
-      FUN = function(p) p.adjust(p, method = "BH")
-    )
+  if (n_total == 0 || nrow(cluster_acc) < 2) {
+    writeLogData(
+      "Cluster design-effect pass found no usable rows/clusters - falling back to normal SE")
+    return(NULL)
   }
 
-  df
+  clusterDeffFromAccum(sst_total, cluster_acc$n, cluster_acc$sum_e, n_total)
 }
-
