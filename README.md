@@ -16,7 +16,7 @@ Der Fragebogen findet sich unter: [Umfrage Kalium360](https://kurzlinks.de/Kaliu
 ## Schritt 1: Datenausleitung mit der DUP-Pipeline
 
 Die benötigten Daten werden von dem lokalen FHIR-Server mit Hilfe der DUP-Pipeline ausgeleitet. Benötigt werden dabei die Schritte TORCH und FHIR-flattener. Die empfohlene Konfiguration für aether (aether-kalium.yml) liegt ebenso wie die aktuelle flatteningLookup.json dem Projekt bei.
-Die DUP-Pipeline wird dann gestartet mit (bzw. analog für die andere CRTDL):
+Die DUP-Pipeline lässt sich für die jeweilige CRTDL mit folgendem Befehl starten:
    ```bash
       aether pipeline start aether-kalium.yml Kalium360_CRTDL_complex_v1.json
    ```
@@ -100,3 +100,7 @@ Target_unit muss dabei pro label immer die vom Projekt vorgegebene sein. Factor 
 ## Hinweis zu Observation.note
 
 Das Skript sucht in Observation.note nach Hinweisen auf hämolytische Proben. Sollte dort etwas gefunden werden, stehen die entsprechenden Freitexte im Log. Diese Passage im Log ist markiert. Zusätzlich steht am Ende ein Hinweis, dass das Log Freitext enthält und vor dem Senden nochmal geprüft werden sollte. Sollte dies bei Ihnen der Fall sein, lesen Sie die entsprechenden Freitexte und zensieren Sie, falls vorhanden, datenschutzrechtlich problematische Stellen. Weitere output Dateien sind davon nicht betroffen.
+
+## Hinweis zum Datenschutz
+
+Die Output Dateien enthalten keinerlei IDs oder andere personenbeziehbare Daten. Zudem werden alle Daten sowohl im log wie auch in den .csvs k-Anonymisiert mit k = 5. Counts unter 5 werden durch <5 ersetzt (0 bleibt erhalten). Zeilen in den .csvs die sich aus zu kleinen Kohorten generieren würden, werden übersprungen.
