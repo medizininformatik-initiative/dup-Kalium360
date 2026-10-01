@@ -288,21 +288,21 @@ assignEncounterContext <- function(encounter_available) {
 
   # AMB values: split by whether an AMB encounter starts on the same day
   query <- glue_sql("
-    SELECT
-      count (*)
+    SELECT COUNT(DISTINCT p.obs_id) AS n
     FROM potassium_result p
     JOIN (
-      SELECT DISTINCT patient, CAST(period_start::TIMESTAMP AS DATE) AS start_date, enc_id
+      SELECT DISTINCT patient, CAST(period_start::TIMESTAMP AS DATE) AS start_date
       FROM encounter_main
       WHERE class = 'AMB'
     ) amb
       ON  p.patient = amb.patient
       AND CAST(p.time::TIMESTAMP AS DATE)  = amb.start_date
+    WHERE p.enc_class = 'AMB'
   ", .con = con)
 
   amb_enc <- dbGetQuery(con, query)
 
-  writeLogData("AMB measurements that have an AMB encounter startig on that day: ", amb_enc)
+  writeLogData("AMB measurements that have an AMB encounter starting on that day: ", amb_enc)
 
   writeLogData("This just for information. Encounter context for AMB is no further considered")
 
@@ -755,11 +755,11 @@ matchConditions <- function(){
               AND (
                 (p.enc_class = 'IMP'
                   AND c.time::TIMESTAMP >= p.enc_start::TIMESTAMP
-                  AND c.time::TIMESTAMP <= p.enc_end::TIMESTAMP + INTERVAL '14 days')
+                  AND c.time::TIMESTAMP < p.enc_end::TIMESTAMP + INTERVAL '14 days')
                 OR
                 (p.enc_class = 'AMB'
                   AND c.time::TIMESTAMP >= DATE_TRUNC('day', p.time::TIMESTAMP)
-                  AND c.time::TIMESTAMP <= DATE_TRUNC('day', p.time::TIMESTAMP) + INTERVAL '14 days')
+                  AND c.time::TIMESTAMP < DATE_TRUNC('day', p.time::TIMESTAMP) + INTERVAL '15 days')
               )
               AND ({cond})
           ) THEN 1 ELSE 0 END AS {name}"
@@ -774,7 +774,7 @@ matchConditions <- function(){
   query <- glue(
     "CREATE OR REPLACE TEMP TABLE potassium_result AS
      SELECT p.*,
-        {paste(flag_sql, collapse = ',\n        ')}
+        {paste(flag_sql, collapse = ',\n      ')}
      FROM potassium_result p"
   )
   dbExecute(con, query)
@@ -782,10 +782,13 @@ matchConditions <- function(){
   # add a flag for measurements with only one matched condition
   flag_sum <- paste(unique(icd_groups$name), collapse = " + ")
 
+  # dka (diabetes with ketoacidose) is also diabetes. So if one patient
+  # has both conditions (dka and diabetes) count it as alone for both. So
+  # diabetes includes also diabetes with ketoacidose.
   query <- glue(
     "CREATE OR REPLACE TEMP TABLE potassium_result AS
      SELECT *,
-        CASE WHEN ({flag_sum}) = 1 THEN 1 ELSE 0 END AS alone_cond
+        CASE WHEN ({flag_sum} - dka) = 1 THEN 1 ELSE 0 END AS alone_cond
      FROM potassium_result"
   )
   dbExecute(con, query)

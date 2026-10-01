@@ -514,7 +514,33 @@ addCompareValue <- function(table, value = TRUE, value_norm = TRUE) {
 
 loadUnitConversionFile <- function() {
   # load unit_conversion.csv
-  unit_conversion <- read.csv("unit_conversion.csv", stringsAsFactors = FALSE)
+  # unit_conversion <- read.csv("unit_conversion.csv", stringsAsFactors = FALSE,
+  #                             fileEncoding = "UTF-8-BOM")
+  path <- "unit_conversion.csv"
+
+  # get all columns form unit_conversion
+  csv_cols <- dbGetQuery(con, glue_sql(
+    "DESCRIBE SELECT * FROM read_csv({path}, all_varchar = TRUE)",
+    .con = con
+  ))$column_name
+
+  required_cols <- c("label", "source_unit", "target_unit", "factor")
+  missing_cols  <- setdiff(required_cols, csv_cols)
+
+  if (length(missing_cols) > 0) {
+    writeLogData("ERROR: unit_conversion.csv has missing columns.")
+    writeLogData("Expected columns: label, source_unit, target_unit, factor.")
+    stop("Invalid columns in unit_conversion.csv")
+  }
+
+  unit_conversion <- dbGetQuery(con, glue_sql("
+    SELECT
+      COALESCE(TRIM(label), '')       AS label,
+      COALESCE(TRIM(source_unit), '') AS source_unit,
+      COALESCE(TRIM(target_unit), '') AS target_unit,
+      NULLIF(TRIM(factor), '')        AS factor
+    FROM read_csv({path}, all_varchar = TRUE)
+  ", .con = con))
 
   # get all rows with same label and source_unit
   dup_check <- unit_conversion[duplicated(
@@ -582,6 +608,9 @@ loadUnitConversionFile <- function() {
     stop("Inconsistent target_unit per label.")
   }
 
+  # convert factor to numeric. SuppressWarnings because NA is fine
+  unit_conversion$factor <- suppressWarnings(as.numeric(unit_conversion$factor))
+
   # create table unit_conversion
   dbWriteTable(con, "unit_conversion", unit_conversion, overwrite = TRUE)
 
@@ -596,6 +625,8 @@ checkAvailableUnits <- function(unit_conversion) {
   all_loincs <- c(LOINCs_Kalium, LOINCs_bicarbonat, LOINCs_crea, LOINCs_glucose)
 
   path <- paste0(data_dir, "/", name_of_lab_csv)
+
+  margin_sql <- sprintf("INTERVAL '%d hours'", max(lab_windows))
 
   query <- glue_sql("
     SELECT DISTINCT unit, label FROM (
@@ -613,8 +644,8 @@ checkAvailableUnits <- function(unit_conversion) {
          OR NOT {`obs_status`} IN ('cancelled', 'entered-in-error'))
       AND {`obs_loinc_system`} = 'http://loinc.org'
       AND {`obs_loinc`} IN ({all_loincs*})
-      AND {`obs_time`} >= {global_min_time}
-      AND {`obs_time`} <= {global_max_time}
+      AND {`obs_time`} >= {global_min_time} - {DBI::SQL(margin_sql)}
+      AND {`obs_time`} <= {global_max_time} + {DBI::SQL(margin_sql)}
       AND label IS NOT NULL
       AND unit IS NOT NULL
     ) t
@@ -667,11 +698,11 @@ checkConfig <- function() {
   if (!file.exists(pathLab) || !file.exists(pathPatient)) {
     if(!file.exists(pathPatient)) {
       writeLogData(paste0("File ", name_of_patient_csv, " not found."))
-      writeLogData("Please check your Input-files and contact us if you need help.")
+      writeLogData("Please check your Input-files.")
     }
     if(!file.exists(pathLab)) {
       writeLogData(paste0("File ", name_of_lab_csv, " not found."))
-      writeLogData("Please check your Input-files and contact us if you need help.")
+      writeLogData("Please check your Input-files.")
     }
     stop("Mandatory files missing")
   }
@@ -702,7 +733,7 @@ checkConfig <- function() {
                 obs_id, obs_reference_high, obs_reference_low, obs_reference_high_unit,
                 obs_reference_low_unit, obs_time, obs_patient, obs_status,
                 obs_interpretation, obs_value_code, obs_value_code_system, obs_specimen,
-                obs_encounter, obs_method_code, obs_method_system)
+                obs_encounter, obs_method_code, obs_method_system, obs_id_content)
 
   patient_cols <- c(pat_id, pat_gebdat, pat_gender)
 

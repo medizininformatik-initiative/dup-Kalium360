@@ -231,7 +231,6 @@ evaluateQualityLOINCs <- function() {
     if (obs_basedon %in% csv_cols) {
 
       # check if basedOn is always NULL
-      # TODO: nein hier ausgeben wie oft basedOn gefüllt ist!
       query <- glue_sql("
         SELECT count(1) n
         FROM potassium
@@ -403,10 +402,15 @@ analyseQualityMatch <- function(join_table) {
 
     # get count of available reference ranges
     query <- glue_sql("
+      WITH distinct_quality AS (
+        SELECT DISTINCT quality_obs_id, quality_loinc, quality_unit,
+                        quality_ref_high, quality_ref_low
+        FROM {join_table}
+      )
       SELECT quality_loinc, quality_unit, COUNT(*) AS n,
        COUNT(*) FILTER (WHERE quality_ref_high IS NOT NULL) AS n_ref_high,
-       COUNT(*) FILTER (WHERE quality_ref_low IS NOT NULL) AS n_ref_low
-      FROM {join_table}
+       COUNT(*) FILTER (WHERE quality_ref_low  IS NOT NULL) AS n_ref_low
+      FROM distinct_quality
       GROUP BY quality_loinc, quality_unit
     ", .con = con)
 
@@ -648,8 +652,7 @@ evaluateNotes <- function(quality_loincs_available) {
     # get all notes from potassium values. i in regexp_matches makes
     # the search case insensitiv
     query <- glue_sql("
-        SELECT DISTINCT
-        note, count(*)
+        SELECT note, count(*) as count
         FROM lab_notes
         WHERE loinc IN ({LOINCs_Kalium*})
         AND regexp_matches(note, {pattern}, 'i')
@@ -660,7 +663,7 @@ evaluateNotes <- function(quality_loincs_available) {
     total_count_potassium <- sum(potassium_notes$count)
     writeLogData("Total regex matches with potassium notes: ", total_count_potassium)
 
-    quality_notes <- 0
+    quality_notes <- data.frame(note = character(), count = integer())
 
     if(quality_loincs_available) {
 

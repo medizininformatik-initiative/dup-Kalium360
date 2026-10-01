@@ -317,7 +317,7 @@ descriptiveStatistic <- function(availability, time_availability,
     t_min <- format(min_available, "%Y-%m-01")
     t_max <- format(max_available + months(1), "%Y-%m-01")
 
-    # define the three dialysis columns
+    # define dialysis columns
     proc_cols <- c("dialyse_during", "dialyse_before", "dialyse_unclear", "dialyse_after")
 
     count_procedures <- function(extra_and = "", kohorte = "all") {
@@ -1084,17 +1084,25 @@ nextKTimingRegression <- function() {
 
     res_occurred <- NULL
 
+    # outcome expression for the check and for the query
+    occurred_sql <- glue_sql(
+      "CASE WHEN next_flag = 1 AND next_hours <= {max_hours}
+            THEN 1 ELSE 0 END", .con = con)
+
     if (hasValidFactorLevels(
       base_filter_occurred, "gender",
       paste0("next_k_occurred_", cohort_suffix)) &&
       hasValidFactorLevels(
         base_filter_occurred, "result",
-        paste0("next_k_occurred_", cohort_suffix))) {
+        paste0("next_k_occurred_", cohort_suffix)) &&
+      hasValidFactorLevels(
+        base_filter_occurred, "next_occurred",
+        paste0("next_k_occurred_", cohort_suffix),
+        expr_sql = occurred_sql)) {
 
       query_occurred <- glue_sql("
         SELECT
-          CASE WHEN next_flag = 1 AND next_hours <= {max_hours}
-               THEN 1 ELSE 0 END AS next_occurred,
+          {occurred_sql} AS next_occurred,
           gender, age, result
         FROM potassium_result
         {base_filter_occurred}
@@ -1122,15 +1130,23 @@ nextKTimingRegression <- function() {
 
 # checks whether every observed level of a categorical predictor has at
 # least k_value rows in the given (already filtered) cohort.
-hasValidFactorLevels <- function(base_filter_sql, col, source_name) {
+hasValidFactorLevels <- function(base_filter_sql, col, source_name,
+                                 expr_sql = NULL) {
+
+  col_sql <- if (is.null(expr_sql)) glue_sql("{`col`}", .con = con) else expr_sql
 
   level_query <- glue_sql("
-      SELECT {`col`} AS level, COUNT(*) AS n
+      SELECT {col_sql} AS level, COUNT(*) AS n
       FROM potassium_result
       {base_filter_sql}
-      GROUP BY {`col`}
+      GROUP BY {col_sql}
     ", .con = con)
   level_counts <- dbGetQuery(con, level_query)
+
+  if (nrow(level_counts) == 0) {
+    writeLogData(paste0("Skipping ", source_name, ": no rows in this cohort"))
+    return(FALSE)
+  }
 
   if (nrow(level_counts) < 2) {
     writeLogData(paste0(
@@ -1141,7 +1157,7 @@ hasValidFactorLevels <- function(base_filter_sql, col, source_name) {
   sparse <- level_counts$level[level_counts$n < k_value]
   if (length(sparse) > 0) {
     writeLogData(paste0(
-      "Skipping ", source_name, " ", col, " has < k_value rows",
+      "Skipping ", source_name, " ", col, " has < k_value rows ",
       paste(sparse, collapse = ", ")))
     return(FALSE)
   }

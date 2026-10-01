@@ -150,6 +150,32 @@ describeDataset <- function() {
 
   writeLogData("Number of measurements per LOINC: ", count_loincs)
 
+  # check the id inside observation
+
+  query <- glue_sql("
+  SELECT
+      COUNT(DISTINCT {`obs_id_content`}) AS n_distinct,
+      COUNT(*) FILTER (WHERE {`obs_id_content`} IS NULL) AS n_null
+    FROM potassium_data
+  ", .con = con)
+  count_content_id <- dbGetQuery(con, query)
+
+  writeLogData("Obervation.identifer distinct count/NULL: ", count_content_id)
+
+  query <- glue_sql("
+  SELECT COUNT(*) AS n_duplicates
+      FROM (
+          SELECT {`obs_id_content`}
+          FROM potassium_data
+          GROUP BY {`obs_id_content`}
+          HAVING COUNT(DISTINCT {`obs_id`}) > 1
+      ) AS duplicates
+  ", .con = con)
+
+  duplicate_ids <- dbGetQuery(con, query)$n_duplicates
+
+  writeLogData("Observations with same observation.id: ", duplicate_ids)
+
   # get the distincts of interpretation an write counts to log
 
   query <- glue_sql("

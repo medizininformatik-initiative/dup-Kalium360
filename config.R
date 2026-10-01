@@ -41,6 +41,7 @@ obs_value <- "Observation_value_X_Valuequantity_value"
 obs_value_unit <- "Observation_value_X_Valuequantity_code"
 obs_value_comp <- "Observation_value_X_Valuequantity_comparator"
 obs_id <- "id"   # FHIR-ID
+obs_id_content <- "Observation_identifierAnalysebefundcode_value"
 obs_reference_high <- "Observation_referenceRange_high_value"
 obs_reference_low <- "Observation_referenceRange_low_value"
 obs_reference_high_unit <- "Observation_referenceRange_high_code"

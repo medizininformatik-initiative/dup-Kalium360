@@ -172,8 +172,8 @@ loadPotassiumData <- function() {
         p.result,
         p.result_detail
       FROM potassium_result_raw p
-      WHERE value_norm <= {kalium_ref$high_ext}
-       AND value_norm >= {kalium_ref$low_ext}
+      WHERE value_norm < {kalium_ref$high_ext}
+       AND value_norm > {kalium_ref$low_ext}
     ", .con = con)
 
   count_result <- dbExecute(con, query)
@@ -195,8 +195,8 @@ loadPotassiumData <- function() {
           ELSE NULL
         END AS sample_type
       FROM potassium_result_raw p
-      WHERE value_norm <= {kalium_ref$high_ext}
-        AND value_norm >= {kalium_ref$low_ext}
+      WHERE value_norm < {kalium_ref$high_ext}
+        AND value_norm > {kalium_ref$low_ext}
     ", .con = con)
   dbExecute(con, query)
 
@@ -1040,24 +1040,38 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
 
   implausible_values <- dbGetQuery(con, query)
 
-
   if (implausible_values$n_implausible > 0) {
     implausible_values <- applyKAnonymity(implausible_values, "n_implausible",
                             c("min_implausible", "max_implausible", "median_implausible"))
     writeLogData("Filtered implausible values (n, min, max, median): ")
     writeLogData(implausible_values, kanonymity = FALSE)
-
-  # create final table
-    query <- glue_sql("
-    CREATE OR REPLACE TEMP TABLE {name} AS
-      SELECT *
-      FROM {name}
-      WHERE value_norm <= {default$high_ext}
-       AND value_norm >= {default$low_ext}
-    ", .con = con)
-
-    count_all <- dbExecute(con, query)
   }
+
+  # check if value_norm is NULL. Should never happen. Just in case.
+  query <- glue_sql("
+    SELECT COUNT(*) AS n
+    FROM {name}
+    WHERE value_norm IS NULL
+  ", .con = con)
+
+   value_norm_null <- dbGetQuery(con, query)$n
+
+   if (value_norm_null > 0) {
+     writeLogData("Note: there are measurements with value_norm = NULL: ",
+                  value_norm_null)
+   }
+
+  # create final table. (if there is value_norm = NULL it falls out)
+  query <- glue_sql("
+  CREATE OR REPLACE TEMP TABLE {name} AS
+    SELECT *
+    FROM {name}
+    WHERE value_norm < {default$high_ext}
+     AND value_norm > {default$low_ext}
+  ", .con = con)
+
+  count_all <- dbExecute(con, query)
+
 
   # get final counts per result
   query <- glue_sql("
