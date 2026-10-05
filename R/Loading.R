@@ -104,6 +104,7 @@ loadPotassiumData <- function() {
       loinc, obs_id, patient, time, age, gender,
       value, value_compare, unit, comparator,
       value_norm, value_norm_compare,
+      encounter as enc_org,
       ROUND(COALESCE(ref_low * unit_factor, {kalium_ref$low}), {value_round_digits}) AS ref_low_effective,
       ROUND(COALESCE(ref_high * unit_factor, {kalium_ref$high}), {value_round_digits}) AS ref_high_effective,
       CASE
@@ -170,7 +171,8 @@ loadPotassiumData <- function() {
         p.unit,
         p.value_norm,
         p.result,
-        p.result_detail
+        p.result_detail,
+        p.enc_org
       FROM potassium_result_raw p
       WHERE value_norm < {kalium_ref$high_ext}
        AND value_norm > {kalium_ref$low_ext}

@@ -306,6 +306,23 @@ assignEncounterContext <- function(encounter_available) {
 
   writeLogData("This just for information. Encounter context for AMB is no further considered")
 
+  query <- glue_sql("
+    SELECT
+      COUNT(*) FILTER (WHERE enc_org = 'Encounter/' || enc_id)  AS same_enc,
+      COUNT(*) FILTER (WHERE enc_org IS NOT NULL AND enc_id IS NOT NULL
+                       AND enc_org <> 'Encounter/' || enc_id)  AS diff_enc,
+      COUNT(*) FILTER (WHERE enc_org IS NULL AND enc_id IS NOT NULL) AS only_calc
+    FROM potassium_result
+    WHERE enc_class = 'IMP';
+  ", .con = con)
+
+  verify_enc <- dbGetQuery(con, query)
+
+  writeLogData("Compare found encounter ref with calculated ref. This assumes
+               that the referenced encounter is of type einrichtungskontakt")
+  writeLogData("same/different/only_calc")
+  writeLogData(verify_enc)
+
   writeLogData("Encounter context assigned successfully")
 }
 
