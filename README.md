@@ -17,9 +17,10 @@ Der Fragebogen findet sich unter: [Umfrage Kalium360](https://kurzlinks.de/Kaliu
 
 Die benötigten Daten werden von dem lokalen FHIR-Server mit Hilfe der DUP-Pipeline ausgeleitet. Benötigt werden dabei die Schritte TORCH und FHIR-flattener. DIMPen ist für das Projekt nicht unbedingt erforderlich wird aber für ein einheitliches Vorgehen empfohlen. Falls Sie diesen Schritt überspringen möchten, können Sie die entsprechenden Stellen in der aether-kalium.yml auskommentieren. 
 Eine Konfiguration für aether (aether-kalium.yml) liegt ebenso wie die aktuelle flatteningLookup.json und den für das DIMPen erforderlichen Dateien dem Projekt bei. In der aether-kalium.yml müssen die benötigten services, insbesondere TORCH, konfiguriert werden. 
-Es sollten die jeweils aktuellen Versionen genutzt werden:
-AETHER: 1.4.0 https://github.com/medizininformatik-initiative/aether/releases#release-v1.4.0
-TORCH: 1.0.1 https://github.com/medizininformatik-initiative/torch/releases#release-v1.0.1
+
+Es sollten die jeweils aktuellen Versionen genutzt werden:\
+AETHER: 1.4.0 https://github.com/medizininformatik-initiative/aether/releases#release-v1.4.0 \
+TORCH: 1.0.1 https://github.com/medizininformatik-initiative/torch/releases#release-v1.0.1 \
 FHIR-flattener: v0.1.0-alpha.9 https://github.com/medizininformatik-initiative/fhir-flattener/releases#v0.1.0-alpha.9
 
 Die DUP-Pipeline lässt sich für die jeweilige CRTDL mit folgendem Befehl starten:
