@@ -15,7 +15,7 @@ Der Fragebogen findet sich unter: [Umfrage Kalium360](https://kurzlinks.de/Kaliu
 
 ## Schritt 1: Datenausleitung mit der DUP-Pipeline
 
-Die benötigten Daten werden von dem lokalen FHIR-Server mit Hilfe der DUP-Pipeline ausgeleitet. Benötigt werden dabei die Schritte TORCH und FHIR-flattener. Die empfohlene Konfiguration für aether (aether-kalium.yml) liegt ebenso wie die aktuelle flatteningLookup.json dem Projekt bei.
+Die benötigten Daten werden von dem lokalen FHIR-Server mit Hilfe der DUP-Pipeline ausgeleitet. Benötigt werden dabei die Schritte TORCH und FHIR-flattener. DIMPen ist für das Projekt nicht unbedingt erforderlich wird aber für ein einheitliches Vorgehen empfohlen. Eine Konfiguration für aether (aether-kalium.yml) liegt ebenso wie die aktuelle flatteningLookup.json und den für das DIMPen erforderlichen Datein dem Projekt bei.
 Die DUP-Pipeline lässt sich für die jeweilige CRTDL mit folgendem Befehl starten:
    ```bash
       aether pipeline start aether-kalium.yml Kalium360_CRTDL_complex_v1.json
@@ -81,6 +81,23 @@ Es werden folgende Output Dateien erzeugt:
    - compareSerumBlood.csv: statistischer Vergleich eng beeinander gemessener Serum und Blut Werte. Diese Datei ist optional und wird nur bei entsprechend vorhandenen Daten geschrieben. 
    - covariatesCounts.csv: Counts zu der Co-occurrence auffälliger Kaliumwerte und den Covariaten getrennt nach unterschiedlichen Gruppen.
    - covariatesRegression: Ergebnisse der linearen Regressionen zu dem Zusammenhang von Kaliumwerten und den Covariaten. 
+
+## Alternative: starten ohne Docker
+
+1. R (≥ 4.4) installieren und in diesem Ordner ein Terminal öffnen.
+2. Benötigte Pakete installieren:
+
+   ```r
+   install.packages(c("DBI", "duckdb", "glue", "dplyr", "purrr",
+                       "lubridate", "tibble", "biglm"))
+   ```
+
+3. In `.env` die Pfade anpassen sowie die Informationen in der .config angeben (wie mit Docker, siehe oben).
+4. Pipeline starten:
+
+   ```bash
+   Rscript Main.R
+   ```
 
 
 ## Hinweis zur unit_conversion.csv
