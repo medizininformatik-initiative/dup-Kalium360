@@ -15,7 +15,13 @@ Der Fragebogen findet sich unter: [Umfrage Kalium360](https://kurzlinks.de/Kaliu
 
 ## Schritt 1: Datenausleitung mit der DUP-Pipeline
 
-Die benötigten Daten werden von dem lokalen FHIR-Server mit Hilfe der DUP-Pipeline ausgeleitet. Benötigt werden dabei die Schritte TORCH und FHIR-flattener. DIMPen ist für das Projekt nicht unbedingt erforderlich wird aber für ein einheitliches Vorgehen empfohlen. Eine Konfiguration für aether (aether-kalium.yml) liegt ebenso wie die aktuelle flatteningLookup.json und den für das DIMPen erforderlichen Datein dem Projekt bei.
+Die benötigten Daten werden von dem lokalen FHIR-Server mit Hilfe der DUP-Pipeline ausgeleitet. Benötigt werden dabei die Schritte TORCH und FHIR-flattener. DIMPen ist für das Projekt nicht unbedingt erforderlich wird aber für ein einheitliches Vorgehen empfohlen. Falls Sie diesen Schritt überspringen möchten, können Sie die entsprechenden Stellen in der aether-kalium.yml auskommentieren. 
+Eine Konfiguration für aether (aether-kalium.yml) liegt ebenso wie die aktuelle flatteningLookup.json und den für das DIMPen erforderlichen Dateien dem Projekt bei. In der aether-kalium.yml müssen die benötigten services, insbesondere TORCH, konfiguriert werden. 
+Es sollten die jeweils aktuellen Versionen genutzt werden:
+AETHER: 1.4.0 https://github.com/medizininformatik-initiative/aether/releases#release-v1.4.0
+TORCH: 1.0.1 https://github.com/medizininformatik-initiative/torch/releases#release-v1.0.1
+FHIR-flattener: v0.1.0-alpha.9 https://github.com/medizininformatik-initiative/fhir-flattener/releases#v0.1.0-alpha.9
+
 Die DUP-Pipeline lässt sich für die jeweilige CRTDL mit folgendem Befehl starten:
    ```bash
       aether pipeline start aether-kalium.yml Kalium360_CRTDL_complex_v1.json
@@ -33,7 +39,7 @@ Beide CRTDLs sind für das Projekt geeignet. Wenn die complexe CRTDL an Ihrem St
 
 Hinweis: beide CRTDLs enthalten händisch hinzugefügte Filter für Medikation. Beim Hochladen in das FDPG Portal werden diese Filter ohne Fehlermeldung entfernt. Bitte nutzen Sie die CRTDLs so wie sie hier bereitgestellt werden. 
 
-### Output
+### Output der DUP-Pipeline
 Je nachdem welche Daten an ihrem Standort vorliegen, können nach Durchlaufen der DUP-pipeline bis zu 13 verschiedene .csv Dateien entstehen: 
 Laborwerte.csv, Kalium Patienten.csv, Bioproben.csv, Fall.csv, Prozeduren.csv, Prozeduren ICU.csv, Haemodialyse.csv, Conditions.csv, Administration Codeableconcept.csv, Administration MedicationCode.csv, Administration Complex.csv, Medikation.csv, ServiceRequest.csv
 
@@ -44,7 +50,7 @@ Lediglich Laborwerte.csv und Kalium Patienten.csv sind Pflicht. Alle anderen Dat
 Da Kalium ein häufig gemessener Laborparameter ist, erwarten wir an einigen Standorten größere Datenmengen. 
 Das Skript setzt auf ein datenbanklastiges Design mit einer DuckDB im Hintergrund. Auf diese Weise können auch Datensätze mit mehreren Millionen Observations performant verarbeitet werden. 
 
-## Starten mit Docker
+### Starten mit Docker
 
 Voraussetzung: Docker ist installiert.
 
@@ -69,40 +75,53 @@ Voraussetzung: Docker ist installiert.
    docker compose run --rm start_kalium
    ```
 
-6. Die Ergebnisse liegen anschließend im in `.env` hinterlegten Output-Ordner. Jeder Durchlauf erzeugt einen eigenen zeitgestempelten Unterordner. 
-Es werden folgende Output Dateien erzeugt:
-   - Kalium360_*Zeitstempel*.log: Das log gehört mit zum output und enthält ebenso wie die .csv Dateien nur aggregierte und k-anonymisierte Daten.
-   - statisticsPotassiumValues.csv: enthält für jeden vorhandenen Kalium LOINC Statistiken sowohl für die Gesamtkohorte wie auch getrennt nach Altersgruppen und Geschlecht.
-   - descriptionPotassiumObservations.csv: eine Übersicht über die vorhandenen Daten getrennt nach vorhandenen Kalium LOINCs.
-   - countPotassiumValuesPerMonth.csv: Messwerte pro Monat
-   - distributionPotassiumValues.csv: Counts der Werte pro bin. Sowohl für die gesamte Kohorte wie auch getrennt nach LOINC, Geschlecht und Alter. 
-   - timelineCovariates.csv: Counts der Covariates pro Monat
-   - potassiumNext6h: Counts zur Veränderung der Kaliumwerte innerhalb von 6 Stunden 
-   - compareSerumBlood.csv: statistischer Vergleich eng beeinander gemessener Serum und Blut Werte. Diese Datei ist optional und wird nur bei entsprechend vorhandenen Daten geschrieben. 
-   - covariatesCounts.csv: Counts zu der Co-occurrence auffälliger Kaliumwerte und den Covariaten getrennt nach unterschiedlichen Gruppen.
-   - covariatesRegression: Ergebnisse der linearen Regressionen zu dem Zusammenhang von Kaliumwerten und den Covariaten. 
+Die Ergebnisse liegen anschließend im in `.env` hinterlegten Output-Ordner. Jeder Durchlauf erzeugt einen eigenen zeitgestempelten Unterordner. 
 
-## Alternative: starten ohne Docker
+Das Skript erzeugt folgende Output-Dateien:
+
+| Datei | Inhalt |
+|---|---|
+| `Kalium360_*Zeitstempel*.log` | Log-Datei, gehört zum Output; enthält wie die CSV-Dateien nur aggregierte und k-anonymisierte Daten |
+| `statisticsPotassiumValues.csv` | Statistiken für jeden vorhandenen Kalium-LOINC, für die Gesamtkohorte sowie getrennt nach Altersgruppen und Geschlecht |
+| `descriptionPotassiumObservations.csv` | Übersicht über die vorhandenen Daten, getrennt nach vorhandenen Kalium-LOINCs |
+| `countPotassiumValuesPerMonth.csv` | Messwerte pro Monat |
+| `distributionPotassiumValues.csv` | Counts der Werte pro Bin, für die gesamte Kohorte sowie getrennt nach LOINC, Geschlecht und Alter |
+| `timelineCovariates.csv` | Counts der Covariates pro Monat |
+| `potassiumNext6h.csv` | Counts zur Veränderung der Kaliumwerte innerhalb von 6 Stunden |
+| `compareSerumBlood.csv` | Statistischer Vergleich eng beieinander gemessener Serum- und Blutwerte. Optional, wird nur bei entsprechend vorhandenen Daten geschrieben |
+| `covariatesCounts.csv` | Counts zur Co-occurrence auffälliger Kaliumwerte und Covariaten, getrennt nach unterschiedlichen Gruppen |
+| `covariatesRegression.csv` | Ergebnisse der linearen Regressionen zum Zusammenhang von Kaliumwerten und Covariaten |
+
+Die Dateien enthalten alle lediglich k-Anonymisierte Daten. Sollte sich in den .csv Dateien eine Zeile auf weniger als 5 Patienten oder Messwerte (je nach Datei) beziehen, dann werden alle inhaltlichen Auswertungen (Mittelwerte, Percentillen etc) übersprungen. 
+Der gesamte Output des Skripts soll an die Datenmanagmentstelle geschickt werden. 
+
+### Alternative: starten ohne Docker
 
 1. R (≥ 4.4) installieren und in diesem Ordner ein Terminal öffnen.
 2. Benötigte Pakete installieren:
 
-   ```r
-   install.packages(c("DBI", "duckdb", "glue", "dplyr", "purrr",
-                       "lubridate", "tibble", "biglm"))
-   ```
+```bash
+   Rscript -e 'options(repos = c(CRAN = "https://packagemanager.posit.co/cran/2026-08-01")); install.packages(c("DBI", "duckdb", "glue", "dplyr", "purrr", "lubridate", "tibble", "biglm"))'
+```
 
-3. In `.env` die Pfade anpassen sowie die Informationen in der .config angeben (wie mit Docker, siehe oben).
+3. In `.env` die Pfade anpassen sowie die Informationen in der config.R angeben (wie mit Docker, siehe oben).
 4. Pipeline starten:
 
    ```bash
    Rscript Main.R
    ```
 
+## Laufzeit und Speicherbedarf
+
+Am Standort (~250.000 Patienten, 1,4 Mio. Kalium-Observations, ~40 Mio. weitere Ressourcen) dauerte die DUP-Pipeline 8 Stunden, das Skript 20 Minuten (32 GB RAM, Intel Core Ultra 7 265). Der TORCH-Output (.ndjson) umfasste ~50 GB, die finalen .csv-Dateien knapp 40 GB. Der Datenbank-Speicherbedarf blieb minimal.
+
+## Analysebeschreibung
+
+Eine Beschreibung der funktionsweise des Skripts sowie der durchgeführten Analysen findet sich hier: [Analysebeschreibung_Kalium360.md](Analysebeschreibung_Kalium360.md)
 
 ## Hinweis zur unit_conversion.csv
 
-Im dritten Teil des Skript findet für insgesamt vier der verwendeten Laborparameter bei Bedarf eine Umrechnung in die für dieses Projekt benötigten Einheiten statt. Die unit_conversion.csv dient dabei als Umrechnungstabelle. 
+Im Skript findet für insgesamt vier der verwendeten Laborparameter bei Bedarf eine Umrechnung in die für dieses Projekt benötigten Einheiten statt. Die unit_conversion.csv dient dabei als Umrechnungstabelle. 
 Zu Beginn prüft das Skript ob alle in den Daten vorhandenen Einheiten in dieser .csv vorkommen. Sollte das nicht so sein, bricht es ab mit dem Hinweis diese zu ergänzen. 
 
 Der Aufbau der .csv ist wie folgt: 
