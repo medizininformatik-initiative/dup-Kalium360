@@ -27,6 +27,9 @@ Die DUP-Pipeline lässt sich für die jeweilige CRTDL mit folgendem Befehl start
    ```bash
       aether pipeline start aether-kalium.yml Kalium360_CRTDL_complex_v1.json
    ```
+   ```bash
+      aether pipeline start aether-kalium.yml Kalium360_CRTDL_basis_v1.json
+   ```
 
 ### CRTDL Varianten
 
@@ -114,7 +117,7 @@ Der gesamte Output des Skripts soll an die Datenmanagmentstelle geschickt werden
 
 ## Laufzeit und Speicherbedarf
 
-Am Standort (~250.000 Patienten, 1,4 Mio. Kalium-Observations, ~40 Mio. weitere Ressourcen) dauerte die DUP-Pipeline 8 Stunden, das Skript 20 Minuten (32 GB RAM, Intel Core Ultra 7 265). Der TORCH-Output (.ndjson) umfasste ~50 GB, die finalen .csv-Dateien knapp 40 GB. Der Datenbank-Speicherbedarf blieb minimal.
+Zum Vergleich die Laufzeiten am Standort (~250.000 Patienten, 1,4 Mio. Kalium-Observations, ~18 Mio. weitere Ressourcen): DUP-Pipeline 8 Stunden, Skript 20 Minuten (32 GB RAM, Intel Core Ultra 7 265). Der TORCH-Output (.ndjson) umfasste ~50 GB, die finalen .csv-Dateien knapp 40 GB. Der Datenbank-Speicherbedarf blieb minimal.
 
 ## Analysebeschreibung
 
