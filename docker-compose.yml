@@ -1,3 +1,4 @@
+---
 services:
   start_kalium:
     # built and published by the GitHub Actions workflow

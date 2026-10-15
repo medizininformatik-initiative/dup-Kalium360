@@ -1,6 +1,8 @@
+---
 name: CI
 
-on:
+# "on" is quoted so yamllint's truthy rule does not flag it as a boolean
+"on":
   push:
     branches: [main]
     # release tags must follow the SemVer scheme vMAJOR.MINOR.PATCH;
@@ -63,7 +65,9 @@ jobs:
         run: python3 -m pip install --quiet yamllint
 
       - name: Run yamllint (errors fail, style warnings do not)
-        run: yamllint -f parsable -c yamllint.yaml *.yml *.yaml
+        # lints all *.yml/*.yaml recursively from the repo root,
+        # including the workflow files in .github/workflows
+        run: yamllint -f parsable -c yamllint.yaml .
 
   docker:
     name: Build image and security scan
