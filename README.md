@@ -58,9 +58,12 @@ Das Skript setzt auf ein datenbanklastiges Design mit einer DuckDB im Hintergrun
 
 Voraussetzung: Docker ist installiert.
 
-Das Docker-Image wird in der GitHub-Actions-CI mit jedem Push auf `main` gebaut
-und unter `ghcr.io/medizininformatik-initiative/dup-kalium360` (Tags `main` und
-`latest`) veröffentlicht. Ein lokales Bauen ist dafür nicht nötig.
+Das Docker-Image wird in der GitHub-Actions-CI gebaut und unter
+`ghcr.io/medizininformatik-initiative/dup-kalium360` veröffentlicht: Jeder Push
+auf `main` unter dem Tag `dev`, jeder Git-Tag nach dem Schema
+`vMAJOR.MINOR.PATCH` (SemVer) unter diesem Versions-Tag, und das Tag `latest`
+zeigt auf die höchste veröffentlichte Version. `docker-compose.yml` nutzt
+standardmäßig das Tag `latest`. Ein lokales Bauen ist dafür nicht nötig.
 
 1. Repository klonen und in den Ordner wechseln.
 2. In `.env` folgende Werte eintragen:
@@ -75,6 +78,10 @@ und unter `ghcr.io/medizininformatik-initiative/dup-kalium360` (Tags `main` und
    ```bash
    docker compose run --rm start_kalium
    ```
+
+Wer eine exakt bestimmte Version nutzen möchte, ruft das Repository am
+zugehörigen Git-Tag auf (z. B. `git checkout v1.1.0`): Das `docker-compose.yml`
+dieses Tags pinnt das Image auf genau diese Version (siehe Abschnitt „Releasen“).
 
 Die Ergebnisse liegen anschließend im in `.env` hinterlegten Output-Ordner. Jeder Durchlauf erzeugt einen eigenen zeitgestempelten Unterordner. 
 
@@ -144,7 +151,7 @@ lokalen Dateien sowie die Umgebungsvariablen manuell übergeben werden,
 anderenfalls greifen die im Image enthaltenen Kopien bzw. die Standardwerte:
 
 ```bash
-docker run --rm ghcr.io/medizininformatik-initiative/dup-kalium360:main \
+docker run --rm ghcr.io/medizininformatik-initiative/dup-kalium360:latest \
   -e KALIUM_DATA_DIR=/data \
   -e KALIUM_OUTPUT_DIR=/output \
   -e KALIUM_WORKING_DIR=/work \
@@ -157,6 +164,38 @@ docker run --rm ghcr.io/medizininformatik-initiative/dup-kalium360:main \
   -v "$(pwd)/input:/data:ro" \
   -v "$(pwd)/output:/output" \
   -v "$(pwd)/work:/work"
+```
+
+### Releasen (für Betreuende)
+
+Ein Release entsteht durch einen Git-Tag nach dem Schema `vMAJOR.MINOR.PATCH`,
+z. B. `v1.1.0`. Da Commits nur per PR auf `main` kommen, wird der Tag auf
+einem kurzen Release-Branch gesetzt und mit dessen PR gemerged:
+
+```bash
+git checkout -b release-v1.1.0
+# in docker-compose.yml und README.md das Image-Tag `latest` durch
+# `ghcr.io/medizininformatik-initiative/dup-kalium360:v1.1.0` ersetzen, im
+# README zudem die Versionsnummer eintragen
+git commit -am "prepare release v1.1.0"
+git tag -a v1.1.0 -m "Release v1.1.0"
+git push origin release-v1.1.0 v1.1.0
+# danach PR von release-v1.1.0 nach main öffnen
+```
+
+Die CI baut das Image für das Tag `v1.1.0` und aktualisiert das Tag `latest`,
+wenn die Version die höchste bisher veröffentlichte ist. Ein Tag mit
+unzulässigem Versionsschema lässt den Build fehlschlagen. Das
+`docker-compose.yml` des Tags muss das Image exakt auf die Tag-Version pinnen
+(die CI prüft das); das README sollte diese Version ebenfalls nennen. Nach dem
+Release nutzen `docker-compose.yml` und README in `main` wieder `latest`.
+
+Der neueste (noch nicht freigegebene) Stand von `main` wird nach jedem Push
+gebaut, sicherheitsgeprüft und unter dem Tag `dev` veröffentlicht. Um ihn zu
+testen, kann in `.env` gesetzt werden:
+
+```
+KALIUM_DOCKER_IMAGE=ghcr.io/medizininformatik-initiative/dup-kalium360:dev
 ```
 
 ## Laufzeit und Speicherbedarf
