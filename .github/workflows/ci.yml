@@ -1,0 +1,112 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  # derived from the lint examples at
+  # https://github.com/r-lib/actions/tree/v2-branch/examples; the lint-project
+  # variant is used because this repository is a plain R project, not an
+  # R package (no DESCRIPTION for lintr::lint_package())
+  lint-r:
+    name: Lint R
+    runs-on: ubuntu-latest
+    env:
+      GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          # same R version as the Docker image
+          r-version: '4.4.2'
+
+      - name: Install lintr
+        run: install.packages("lintr")
+        shell: Rscript {0}
+
+      - name: Lint root directory
+        run: lintr::lint_dir()
+        shell: Rscript {0}
+        env:
+          LINTR_ERROR_ON_LINT: true
+
+  lint-json:
+    name: Lint JSON
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Validate JSON syntax (jq)
+        run: |
+          jq empty *.json
+          echo "All JSON files are syntactically valid."
+
+  lint-yaml:
+    name: Lint YAML
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Install yamllint
+        run: python3 -m pip install --quiet yamllint
+
+      - name: Run yamllint (errors fail, style warnings do not)
+        run: yamllint -f parsable -c yamllint.yaml *.yml *.yaml
+
+  docker:
+    name: Build image and security scan
+    runs-on: ubuntu-latest
+    timeout-minutes: 30
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Lint Dockerfile (hadolint)
+        uses: hadolint/hadolint-action@v3.5.0
+        with:
+          dockerfile: Dockerfile
+          fail-on: error
+
+      - name: Build Docker image
+        run: docker build -t kalium360:ci .
+
+      # Security check of the built image. Fails on CRITICAL vulnerabilities
+      # for which a fix is available (base image may need a rebuild for that).
+      # Raise `severity` (e.g. HIGH,CRITICAL) to make the check stricter.
+      - name: Scan image for vulnerabilities (Trivy)
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: kalium360:ci
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          scan-timeout: 10m
+
+      # Additional report including HIGH findings, uploaded as artifact
+      - name: Trivy report (SARIF)
+        if: always()
+        uses: aquasecurity/trivy-action@v0.36.0
+        with:
+          image-ref: kalium360:ci
+          format: sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          output: trivy-image-report.sarif
+
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: trivy-image-report
+          path: trivy-image-report.sarif
+          if-no-files-found: warn

@@ -51,7 +51,6 @@ fhirPathRules:
 
   - path: nodesByType('Identifier').where(type.coding.where(system='http://terminology.hl7.org/CodeSystem/v3-ObservationValue' and code='ANONYED').exists())
     method: keep
- 
 
 ## Patient
   ### Generalize PostalCode to first two characters

@@ -1,0 +1,14 @@
+# lintr configuration for Kalium360 (used by CI and locally, e.g. in RStudio)
+#
+# Only "correctness"-tagged linters are enabled: they flag likely bugs,
+# not style issues. Style linters (line length, spacing, assignment
+# operators, ...) are deliberately not used: the scripts intentionally
+# use <<- to share state between the sourced files.
+#
+# function_return_linter is excluded because several functions
+# intentionally end in an assignment to a global variable
+# (see writeDataDirsToEnv() in Main.R).
+linters <- linter_tags_linters(
+  tags = "correctness",
+  exclude = list(function_return_linter = TRUE)
+)

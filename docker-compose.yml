@@ -18,5 +18,5 @@ services:
       - ${KALIUM_DATA_PATH}:/data:ro
       # output folder
       - ${KALIUM_OUTPUT_PATH}:/output
-      # temp DuckDB working folder 
+      # temp DuckDB working folder
       - ${KALIUM_WORKING_PATH}:/work
