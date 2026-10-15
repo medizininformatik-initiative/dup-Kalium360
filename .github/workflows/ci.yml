@@ -32,8 +32,12 @@ jobs:
           # same R version as the Docker image
           r-version: '4.4.2'
 
-      - name: Install lintr
-        run: install.packages("lintr")
+      # the runtime packages (same list as in the Dockerfile) are needed
+      # so that namespace_linter can resolve their exports
+      - name: Install lintr and runtime packages
+        run: |
+          install.packages(c("lintr", "DBI", "duckdb", "glue", "dplyr",
+                             "purrr", "lubridate", "tibble", "biglm"))
         shell: Rscript {0}
 
       - name: Lint root directory
@@ -191,7 +195,7 @@ jobs:
           severity: CRITICAL
           ignore-unfixed: true
           exit-code: "1"
-          scan-timeout: 10m
+          timeout: 10m
 
       # Additional report including HIGH findings, uploaded as artifact
       - name: Trivy report (SARIF)

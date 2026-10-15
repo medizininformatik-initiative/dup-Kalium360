@@ -4,8 +4,11 @@ FROM rocker/r-ver:4.4.2
 # DL3008 (pin apt versions) ignored: apt package versions come from the
 # Ubuntu pockets and cannot be pinned reliably; reproducibility of the R
 # stack is ensured by the pinned CRAN snapshot below.
+# apt-get upgrade pulls in the Ubuntu security fixes released after the
+# rocker base image was built (e.g. CVEs in linux-libc-dev).
 # hadolint ignore=DL3008
-RUN apt-get update && apt-get install -y --no-install-recommends \
+RUN apt-get update && apt-get upgrade -y \
+    && apt-get install -y --no-install-recommends \
     libcurl4-openssl-dev \
     libssl-dev \
     libxml2-dev \
