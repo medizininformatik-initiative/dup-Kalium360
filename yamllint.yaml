@@ -1,0 +1,11 @@
+---
+# yamllint configuration (https://yamllint.readthedocs.io)
+#
+# Based on the default config: style issues (line length, document start,
+# indentation, ...) are warnings and do not fail CI; only real errors
+# (duplicate keys, CRLF line endings, missing final newline, trailing
+# whitespace) fail the build.
+extends: default
+rules:
+  # fhirPath expressions and Docker image references can be long
+  line-length: disable

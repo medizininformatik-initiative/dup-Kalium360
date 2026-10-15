@@ -58,26 +58,30 @@ Das Skript setzt auf ein datenbanklastiges Design mit einer DuckDB im Hintergrun
 
 Voraussetzung: Docker ist installiert.
 
+Das Docker-Image wird in der GitHub-Actions-CI gebaut und unter
+`ghcr.io/medizininformatik-initiative/dup-kalium360` veröffentlicht: Jeder Push
+auf `main` unter dem Tag `dev`, jeder Git-Tag nach dem Schema
+`vMAJOR.MINOR.PATCH` (SemVer) unter diesem Versions-Tag, und das Tag `latest`
+zeigt auf die höchste veröffentlichte Version. `docker-compose.yml` nutzt
+standardmäßig das Tag `latest`. Ein lokales Bauen ist dafür nicht nötig.
+
 1. Repository klonen und in den Ordner wechseln.
-2. In `.env` folgende Pfade definieren: 
+2. In `.env` folgende Werte eintragen:
    - KALIUM_DATA_PATH: Input Ordner mit dem DUP-Pipeline output
    - KALIUM_OUTPUT_PATH: Ordner in den das Skript seinen Output schreibt
    - KALIUM_WORKING_PATH: Ordner für DuckDB um temporäre Datenbank-Dateien zu speichern. Nach dem Skriptdurchlauf werden diese Dateien wieder gelöscht.
-3. In der config.R folgendes eintragen:
-   - used_CRTDL: Name der verwendeten CRTDL 
-   - site_pseudonym: Ihr selbst gewähltes Pseudonym so wie es auch im Fragebogen angegeben ist
-
-4. Image einmalig bauen:
-
-   ```bash
-   docker compose build
-   ```
-
-5. Pipeline starten:
+   - KALIUM_CRTDL: Name der verwendeten CRTDL (Kalium360_CRTDL_basis oder Kalium360_CRTDL_complex)
+   - KALIUM_SITE_PSEUDONYM: Ihr selbst gewähltes Pseudonym so wie es auch im Fragebogen angegeben ist
+3. Pipeline starten (das Image wird bei Bedarf automatisch von der GitHub
+   Container Registry geladen):
 
    ```bash
    docker compose run --rm start_kalium
    ```
+
+Wer eine exakt bestimmte Version nutzen möchte, ruft das Repository am
+zugehörigen Git-Tag auf (z. B. `git checkout v1.1.0`): Das `docker-compose.yml`
+dieses Tags pinnt das Image auf genau diese Version (siehe Abschnitt „Releasen“).
 
 Die Ergebnisse liegen anschließend im in `.env` hinterlegten Output-Ordner. Jeder Durchlauf erzeugt einen eigenen zeitgestempelten Unterordner. 
 
@@ -108,12 +112,91 @@ Der gesamte Output des Skripts soll an die Datenmanagmentstelle geschickt werden
    Rscript -e 'options(repos = c(CRAN = "https://packagemanager.posit.co/cran/2026-08-01")); install.packages(c("DBI", "duckdb", "glue", "dplyr", "purrr", "lubridate", "tibble", "biglm"))'
 ```
 
-3. In `.env` die Pfade anpassen sowie die Informationen in der config.R angeben (wie mit Docker, siehe oben).
+3. In `.env` die Pfade sowie `KALIUM_CRTDL` und `KALIUM_SITE_PSEUDONYM` anpassen (wie mit Docker, siehe oben). Die Werte in der `config.R` werden nur verwendet, wenn die Umgebungsvariablen nicht gesetzt sind.
 4. Pipeline starten:
 
    ```bash
    Rscript Main.R
    ```
+
+## Entwicklung: lokale Änderungen an Skripten und Konfiguration
+
+Das Docker-Image enthält Kopien der R-Skripte (`Main.R`, `config.R`, `R/*.R`)
+sowie der `unit_conversion.csv`. Für Entwicklung und Tests können all diese
+Dateien lokal geändert werden, **ohne** das Image neu zu bauen: `docker compose`
+bindet die lokalen Dateien als Read-only-Volumes in den Container (siehe
+`docker-compose.yml`) und überschreibt damit die im Image enthaltenen Kopien.
+
+1. Die gewünschte Datei lokal ändern, z. B. `R/Statistic.R` oder `config.R`.
+2. Ohne Rebuild neu starten:
+
+   ```bash
+   docker compose run --rm start_kalium
+   ```
+
+Ist eine Änderung am Image selbst nötig (z. B. neue R-Pakete oder eine neue
+Version von `CRAN_SNAPSHOT_DATE` im Dockerfile), kann das Image lokal gebaut
+und über `KALIUM_DOCKER_IMAGE` in der `.env` verwendet werden:
+
+```bash
+docker build -t kalium360:local .
+```
+
+```
+KALIUM_DOCKER_IMAGE=kalium360:local
+```
+
+Startet man das Image ohne `docker compose` direkt mit `docker run`, müssen die
+lokalen Dateien sowie die Umgebungsvariablen manuell übergeben werden,
+anderenfalls greifen die im Image enthaltenen Kopien bzw. die Standardwerte:
+
+```bash
+docker run --rm ghcr.io/medizininformatik-initiative/dup-kalium360:latest \
+  -e KALIUM_DATA_DIR=/data \
+  -e KALIUM_OUTPUT_DIR=/output \
+  -e KALIUM_WORKING_DIR=/work \
+  -e KALIUM_CRTDL=Kalium360_CRTDL_complex \
+  -e KALIUM_SITE_PSEUDONYM=mein-pseudonym \
+  -v "$(pwd)/Main.R:/app/Main.R:ro" \
+  -v "$(pwd)/config.R:/app/config.R:ro" \
+  -v "$(pwd)/R:/app/R:ro" \
+  -v "$(pwd)/unit_conversion.csv:/app/unit_conversion.csv:ro" \
+  -v "$(pwd)/input:/data:ro" \
+  -v "$(pwd)/output:/output" \
+  -v "$(pwd)/work:/work"
+```
+
+### Releasen (für Betreuende)
+
+Ein Release entsteht durch einen Git-Tag nach dem Schema `vMAJOR.MINOR.PATCH`,
+z. B. `v1.1.0`. Da Commits nur per PR auf `main` kommen, wird der Tag auf
+einem kurzen Release-Branch gesetzt und mit dessen PR gemerged:
+
+```bash
+git checkout -b release-v1.1.0
+# in docker-compose.yml und README.md das Image-Tag `latest` durch
+# `ghcr.io/medizininformatik-initiative/dup-kalium360:v1.1.0` ersetzen, im
+# README zudem die Versionsnummer eintragen
+git commit -am "prepare release v1.1.0"
+git tag -a v1.1.0 -m "Release v1.1.0"
+git push origin release-v1.1.0 v1.1.0
+# danach PR von release-v1.1.0 nach main öffnen
+```
+
+Die CI baut das Image für das Tag `v1.1.0` und aktualisiert das Tag `latest`,
+wenn die Version die höchste bisher veröffentlichte ist. Ein Tag mit
+unzulässigem Versionsschema lässt den Build fehlschlagen. Das
+`docker-compose.yml` des Tags muss das Image exakt auf die Tag-Version pinnen
+(die CI prüft das); das README sollte diese Version ebenfalls nennen. Nach dem
+Release nutzen `docker-compose.yml` und README in `main` wieder `latest`.
+
+Der neueste (noch nicht freigegebene) Stand von `main` wird nach jedem Push
+gebaut, sicherheitsgeprüft und unter dem Tag `dev` veröffentlicht. Um ihn zu
+testen, kann in `.env` gesetzt werden:
+
+```
+KALIUM_DOCKER_IMAGE=ghcr.io/medizininformatik-initiative/dup-kalium360:dev
+```
 
 ## Laufzeit und Speicherbedarf
 

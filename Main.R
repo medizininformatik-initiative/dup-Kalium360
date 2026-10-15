@@ -24,6 +24,10 @@ startKalium <- function() {
   # get docker or local data dir and write it to env
   writeDataDirsToEnv()
 
+  # site settings: environment variables (from docker-compose or .env)
+  # take precedence over the values from config.R
+  writeSiteSettingsToEnv()
+
   # marker to know if everything finished correctly
   success <- FALSE
 
@@ -106,6 +110,23 @@ writeDataDirsToEnv <- function() {
   data_dir        <<- resolvePath(data_dir, "KALIUM_DATA_DIR", "KALIUM_DATA_PATH")
   main_output_dir <<- resolvePath(main_output_dir, "KALIUM_OUTPUT_DIR", "KALIUM_OUTPUT_PATH")
   working_dir     <<- resolvePath(working_dir, "KALIUM_WORKING_DIR", "KALIUM_WORKING_PATH")
+
+}
+
+writeSiteSettingsToEnv <- function() {
+
+  # as in writeDataDirsToEnv: a set environment variable takes precedence
+  # over the value from config.R
+  siteSetting <- function(var, config_value) {
+    env_value <- Sys.getenv(var)
+    if (nzchar(env_value)) {
+      return(env_value)
+    }
+    config_value
+  }
+
+  used_CRTDL     <<- siteSetting("KALIUM_CRTDL", used_CRTDL)
+  site_pseudonym <<- siteSetting("KALIUM_SITE_PSEUDONYM", site_pseudonym)
 
 }
 

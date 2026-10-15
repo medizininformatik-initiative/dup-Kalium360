@@ -1,11 +1,15 @@
 
 
 
-# please enter the name of the used CRTDL. This generates a note to
-# log but has no impact on the code.
+# name of the used CRTDL (Kalium360_CRTDL_basis or Kalium360_CRTDL_complex).
+# This generates a note to log but has no impact on the code.
+# Can be set via the environment variable KALIUM_CRTDL (e.g. in the .env
+# file), which takes precedence over this value.
 used_CRTDL <- "please define"
 
-# please enter the pseudonym you used in the project survey.
+# the pseudonym you used in the project survey.
+# Can be set via the environment variable KALIUM_SITE_PSEUDONYM (e.g. in the
+# .env file), which takes precedence over this value.
 site_pseudonym <- "please define"
 
 ###############################################################################
