@@ -72,12 +72,21 @@ standardmäßig das Tag `latest`. Ein lokales Bauen ist dafür nicht nötig.
    - KALIUM_WORKING_PATH: Ordner für DuckDB um temporäre Datenbank-Dateien zu speichern. Nach dem Skriptdurchlauf werden diese Dateien wieder gelöscht.
    - KALIUM_CRTDL: Name der verwendeten CRTDL (Kalium360_CRTDL_basis oder Kalium360_CRTDL_complex)
    - KALIUM_SITE_PSEUDONYM: Ihr selbst gewähltes Pseudonym so wie es auch im Fragebogen angegeben ist
-3. Pipeline starten (das Image wird bei Bedarf automatisch von der GitHub
+3. Output- und Working-Ordner anlegen, falls sie noch nicht existieren.
+   Fehlende Ordner legt Docker mit Besitzer root an, dann fehlen dem Container
+   die Schreibrechte.
+4. Pipeline starten (das Image wird bei Bedarf automatisch von der GitHub
    Container Registry geladen):
 
    ```bash
-   docker compose run --rm start_kalium
+   docker compose run --rm --user "$(id -u):$(id -g)" start_kalium
    ```
+
+   Der Container läuft nicht als root, sondern mit der User- und Gruppen-ID
+   des aufrufenden Benutzers. Dadurch darf er in Output- und Working-Ordner
+   schreiben, und die Ergebnisdateien gehören diesem Benutzer. Unter Windows
+   (PowerShell) gibt es `id` nicht: dort `--user ...` weglassen, der Container
+   läuft dann mit der Standard-ID 1000.
 
 Wer eine exakt bestimmte Version nutzen möchte, ruft das Repository am
 zugehörigen Git-Tag auf (z. B. `git checkout v1.1.0`): Das `docker-compose.yml`
@@ -131,7 +140,7 @@ bindet die lokalen Dateien als Read-only-Volumes in den Container (siehe
 2. Ohne Rebuild neu starten:
 
    ```bash
-   docker compose run --rm start_kalium
+   docker compose run --rm --user "$(id -u):$(id -g)" start_kalium
    ```
 
 Ist eine Änderung am Image selbst nötig (z. B. neue R-Pakete oder eine neue
@@ -151,7 +160,8 @@ lokalen Dateien sowie die Umgebungsvariablen manuell übergeben werden,
 anderenfalls greifen die im Image enthaltenen Kopien bzw. die Standardwerte:
 
 ```bash
-docker run --rm ghcr.io/medizininformatik-initiative/dup-kalium360:latest \
+docker run --rm \
+  --user "$(id -u):$(id -g)" \
   -e KALIUM_DATA_DIR=/data \
   -e KALIUM_OUTPUT_DIR=/output \
   -e KALIUM_WORKING_DIR=/work \
@@ -163,7 +173,8 @@ docker run --rm ghcr.io/medizininformatik-initiative/dup-kalium360:latest \
   -v "$(pwd)/unit_conversion.csv:/app/unit_conversion.csv:ro" \
   -v "$(pwd)/input:/data:ro" \
   -v "$(pwd)/output:/output" \
-  -v "$(pwd)/work:/work"
+  -v "$(pwd)/work:/work" \
+  ghcr.io/medizininformatik-initiative/dup-kalium360:latest
 ```
 
 ### Releasen (für Betreuende)

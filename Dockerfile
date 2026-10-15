@@ -35,8 +35,16 @@ COPY *.R ./
 COPY R/*.R ./R/
 COPY unit_conversion.csv ./
 
-# mount points for input, output and working dir
-RUN mkdir -p /data /output /work
+# mount points for input, output and working dir, and a non-root user
+# that runs the scripts. UID/GID 1000 matches the first user on most Linux
+# hosts; the README runs it with --user "$(id -u):$(id -g)" instead.
+RUN groupadd --gid 1000 kalium \
+    && useradd --uid 1000 --gid kalium --no-create-home \
+      --home-dir /work --shell /usr/sbin/nologin kalium \
+    && mkdir -p /data /output /work \
+    && chown kalium:kalium /output /work
+
+USER 1000:1000
 
 # Defaults for directorys
 ENV KALIUM_DATA_DIR=/data
