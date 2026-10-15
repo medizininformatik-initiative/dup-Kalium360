@@ -1,5 +1,5 @@
 # Kalium360 - Docker-Image
-FROM rocker/r-ver:4.4.2
+FROM rocker/r-ver:4.6.0
 
 # DL3008 (pin apt versions) ignored: apt package versions come from the
 # Ubuntu pockets and cannot be pinned reliably; reproducibility of the R
