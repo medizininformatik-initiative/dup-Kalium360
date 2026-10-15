@@ -14,6 +14,10 @@ name: CI
 permissions:
   contents: read
 
+# All actions are pinned to full commit SHAs (version in the comment), so a
+# moved tag cannot run foreign code. Dependabot keeps the pins up to date.
+# Checkouts use persist-credentials: false, so the GITHUB_TOKEN is not
+# left in .git/config for later steps.
 jobs:
   # derived from the lint examples at
   # https://github.com/r-lib/actions/tree/v2-branch/examples; the lint-project
@@ -25,9 +29,11 @@ jobs:
     env:
       GITHUB_PAT: ${{ secrets.GITHUB_TOKEN }}
     steps:
-      - uses: actions/checkout@v4
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
 
-      - uses: r-lib/actions/setup-r@v2
+      - uses: r-lib/actions/setup-r@f9a764fea8d5c63df6ef9a5c7795bf7deb5d7e05  # v2.14.0
         with:
           # same R version as the Docker image
           r-version: '4.4.2'
@@ -51,7 +57,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Validate JSON syntax (jq)
         run: |
@@ -63,7 +71,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
+        with:
+          persist-credentials: false
 
       - name: Install yamllint
         run: python3 -m pip install --quiet yamllint
@@ -80,16 +90,19 @@ jobs:
     permissions:
       contents: read
       packages: write
+      # upload of the Trivy report to GitHub code scanning
+      security-events: write
     steps:
       - name: Checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262  # v4.4.0
         with:
           # all git tags are needed to find the highest
           # version for the `latest` image tag
           fetch-depth: 0
+          persist-credentials: false
 
       - name: Lint Dockerfile (hadolint)
-        uses: hadolint/hadolint-action@v3.5.0
+        uses: hadolint/hadolint-action@06be81baf89a55ffd0e24b8f04a4185738dd3387  # v3.5.0
         with:
           dockerfile: Dockerfile
           # only findings with severity error or above fail the job
@@ -128,7 +141,7 @@ jobs:
       # type=semver entry fails the build if a tag is not valid SemVer.
       - name: Generate docker image metadata
         id: meta
-        uses: docker/metadata-action@v6
+        uses: docker/metadata-action@dc802804100637a589fabce1cb79ff13a1411302  # v6.2.0
         with:
           images: ghcr.io/medizininformatik-initiative/dup-kalium360
           flavor: |
@@ -157,18 +170,60 @@ jobs:
           fi
 
       - name: Set up Docker Buildx
-        uses: docker/setup-buildx-action@v3
+        uses: docker/setup-buildx-action@8d2750c68a42422c14e847fe6c8ac0403b4cbd6f  # v3.12.0
 
       - name: Build Docker image
-        uses: docker/build-push-action@v6
+        uses: docker/build-push-action@10e90e3645eae34f1e60eeb005ba3a3d33f178e8  # v6.19.2
         with:
           context: .
           load: true
           tags: kalium360:ci
 
+      # Security check of the built image, before it is published: an image
+      # with CRITICAL vulnerabilities for which a fix is available is never
+      # pushed (base image may need a rebuild for that).
+      # Raise `severity` (e.g. HIGH,CRITICAL) to make the check stricter.
+      - name: Scan image for vulnerabilities (Trivy)
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
+        with:
+          image-ref: kalium360:ci
+          format: table
+          severity: CRITICAL
+          ignore-unfixed: true
+          exit-code: "1"
+          timeout: 10m
+
+      # Additional report including HIGH findings, shown in the Security tab
+      # (code scanning) and uploaded as artifact
+      - name: Trivy report (SARIF)
+        if: always()
+        uses: aquasecurity/trivy-action@ed142fd0673e97e23eac54620cfb913e5ce36c25  # v0.36.0
+        with:
+          image-ref: kalium360:ci
+          format: sarif
+          severity: HIGH,CRITICAL
+          ignore-unfixed: true
+          output: trivy-image-report.sarif
+
+      # pull requests from forks get a read-only token and cannot upload
+      - name: Upload Trivy report to code scanning
+        if: always() && (github.event_name != 'pull_request' || github.event.pull_request.head.repo.full_name == github.repository)
+        uses: github/codeql-action/upload-sarif@6f2ac81f5cd81fe351a197ba0b00d91d03cd2aee  # v4.39.0
+        with:
+          sarif_file: trivy-image-report.sarif
+          category: trivy-image
+
+      - name: Upload Trivy report
+        if: always()
+        uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02  # v4.6.2
+        with:
+          name: trivy-image-report
+          path: trivy-image-report.sarif
+          if-no-files-found: warn
+
       - name: Log in to GitHub Container Registry
         if: steps.meta.outputs.tags != ''
-        uses: docker/login-action@v3
+        uses: docker/login-action@c94ce9fb468520275223c153574b00df6fe4bcc9  # v3.7.0
         with:
           registry: ghcr.io
           username: ${{ github.actor }}
@@ -183,35 +238,3 @@ jobs:
             docker tag kalium360:ci "$tag"
             docker push "$tag"
           done <<< "$META_TAGS"
-
-      # Security check of the built image. Fails on CRITICAL vulnerabilities
-      # for which a fix is available (base image may need a rebuild for that).
-      # Raise `severity` (e.g. HIGH,CRITICAL) to make the check stricter.
-      - name: Scan image for vulnerabilities (Trivy)
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: kalium360:ci
-          format: table
-          severity: CRITICAL
-          ignore-unfixed: true
-          exit-code: "1"
-          timeout: 10m
-
-      # Additional report including HIGH findings, uploaded as artifact
-      - name: Trivy report (SARIF)
-        if: always()
-        uses: aquasecurity/trivy-action@v0.36.0
-        with:
-          image-ref: kalium360:ci
-          format: sarif
-          severity: HIGH,CRITICAL
-          ignore-unfixed: true
-          output: trivy-image-report.sarif
-
-      - name: Upload Trivy report
-        if: always()
-        uses: actions/upload-artifact@v4
-        with:
-          name: trivy-image-report
-          path: trivy-image-report.sarif
-          if-no-files-found: warn
