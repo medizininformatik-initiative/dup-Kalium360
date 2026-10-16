@@ -180,26 +180,34 @@ docker run --rm \
 ### Releasen (für Betreuende)
 
 Ein Release entsteht durch einen Git-Tag nach dem Schema `vMAJOR.MINOR.PATCH`,
-z. B. `v1.1.0`. Da Commits nur per PR auf `main` kommen, wird der Tag auf
-einem kurzen Release-Branch gesetzt und mit dessen PR gemerged:
+z. B. `v9.9.9` (die Nummer im folgenden Beispiel ist ein Platzhalter und wird
+bewusst nie als echter Tag existieren). Da Commits nur per PR auf `main`
+kommen, wird der Tag auf einem kurzen Release-Branch gesetzt und mit dessen
+PR gemerged:
 
 ```bash
-git checkout -b release-v1.1.0
+git checkout -b release-v9.9.9
 # in docker-compose.yml und README.md das Image-Tag `latest` durch
-# `ghcr.io/medizininformatik-initiative/dup-kalium360:v1.1.0` ersetzen, im
+# `ghcr.io/medizininformatik-initiative/dup-kalium360:v9.9.9` ersetzen, im
 # README zudem die Versionsnummer eintragen
-git commit -am "prepare release v1.1.0"
-git tag -a v1.1.0 -m "Release v1.1.0"
-git push origin release-v1.1.0 v1.1.0
-# danach PR von release-v1.1.0 nach main öffnen
+git commit -am "prepare release v9.9.9"
+git tag -a v9.9.9 -m "Release v9.9.9"
+# erst NACH dem Taggen docker-compose.yml wieder auf `latest` zurücksetzen
+# (der Versionspin bleibt so nur im getaggten Commit), die README-Versionierung
+# aber stehen lassen, damit sie als Release-Doku in main erhalten bleibt
+sed -i 's|dup-kalium360:v9\.9\.9}|dup-kalium360:latest}|' docker-compose.yml
+git commit -am "post-release: docker-compose back to latest"
+git push origin release-v9.9.9 v9.9.9
+# danach PR von release-v9.9.9 nach main öffnen
 ```
 
-Die CI baut das Image für das Tag `v1.1.0` und aktualisiert das Tag `latest`,
+Die CI baut das Image für das Tag `v9.9.9` und aktualisiert das Tag `latest`,
 wenn die Version die höchste bisher veröffentlichte ist. Ein Tag mit
 unzulässigem Versionsschema lässt den Build fehlschlagen. Das
 `docker-compose.yml` des Tags muss das Image exakt auf die Tag-Version pinnen
-(die CI prüft das); das README sollte diese Version ebenfalls nennen. Nach dem
-Release nutzen `docker-compose.yml` und README in `main` wieder `latest`.
+(die CI prüft das); das README sollte diese Version ebenfalls nennen. Durch
+den Post-Release-Commit im PR nutzen `docker-compose.yml` nach dem Merge in
+`main` wieder `latest`.
 
 Der neueste (noch nicht freigegebene) Stand von `main` wird nach jedem Push
 gebaut, sicherheitsgeprüft und unter dem Tag `dev` veröffentlicht. Um ihn zu
