@@ -11,6 +11,9 @@ fhirPathRules:
   - path: nodesByType('Reference').identifier.where(system='https://www.medizininformatik-initiative.de/fhir/fdpg/NamingSystem/extraction_id')
     method: keep
 
+  - path: nodesByType('Reference').identifier.where(system='https://www.medizininformatik-initiative.de/fhir/fdpg/NamingSystem/program')
+    method: keep
+
   ## Always hash systems of identifier
   # This needs a feature in the pseudonymizer to allow hashing full urls
   # - path: nodesByType('Identifier').system
@@ -96,7 +99,7 @@ fhirPathRules:
   - path: Provenance.target.reference
     method: cryptoHash
     truncateToMaxLength: 32
-  - path: nodesByType('Reference').reference
+  - path: nodesByType('Reference').where(reference.matches('.+')).reference
     method: cryptoHash
     truncateToMaxLength: 32
   - path: Bundle.entry.fullUrl
@@ -114,10 +117,19 @@ fhirPathRules:
   - path: nodesByType('Reference').identifier.where(type.coding.where(system='http://terminology.hl7.org/CodeSystem/v2-0203' and (code='MR')).exists())
     method: keep
 
+  ## Mask References that would be left empty after cleaning (e.g. only display) - keeps parent cardinality intact
+  - path: nodesByType('Reference').where(reference.empty() and identifier.empty() and extension.empty())
+    method: substitute
+    replaceWith: '{"extension":[{"url":"http://hl7.org/fhir/StructureDefinition/data-absent-reason","valueCode":"masked"}]}'
+
   ## Clean References - To discuss if necessary potentially problematic when using logical reference resolve
   - path: nodesByType('Reference').display
     method: redact
 
+
+  ### Explicitedly keep Observation not
+  - path: Observation.where(meta.profile.where($this.startsWith('https://www.medizininformatik-initiative.de/fhir/core/modul-labor/StructureDefinition/ObservationLab')).exists()).note
+    method: keep
 
   ## Additional Insurance (fail safe) - Removes IDAT if unpseudonymized data is processed (precautionary measure; should not happen)
   ### Name
@@ -125,7 +137,8 @@ fhirPathRules:
     method: redact
   ### Insurance Number
   - path: nodesByType('Identifier').where(type.coding.where(system='http://fhir.de/CodeSystem/identifier-type-de-basis' and (code='GKV' or code='PKV' or code='KVZ10')).exists())
-    method: redact
+    method: substitute
+    replaceWith: '{"extension":[{"url":"http://hl7.org/fhir/StructureDefinition/data-absent-reason","valueCode":"masked"}]}'
   ### Age
   - path: nodesByType('Age')
     method: redact
@@ -137,10 +150,19 @@ fhirPathRules:
     method: redact
 
 
-  ## Redact all remaining identifier unless otherwise specified
-  # - path: nodesByType('Identifier')
-  #  method: redact
+  ## Remaining identifiers - mask (default) or cryptohash, never both
+  ### Mask all remaining identifiers with a data-absent-reason - keeps parent cardinality intact
+  - path: nodesByType('Identifier')
+    method: substitute
+    replaceWith: '{"extension":[{"url":"http://hl7.org/fhir/StructureDefinition/data-absent-reason","valueCode":"masked"}]}'
 
-  - path: nodesByType('Identifier').value
-    method: cryptoHash
-    truncateToMaxLength: 32
+# yamllint disable rule:comments-indentation
+  ### Cryptohash system and value of all remaining identifiers instead - keeps type
+  ### To use it, comment out the mask rule above and comment in both rules
+  ### They have to stay below the mask rule, so that forgetting to comment out the mask rule only masks
+  # - path: nodesByType('Identifier').system
+  #   method: cryptoHash
+  #   truncateToMaxLength: 32
+  # - path: nodesByType('Identifier').value
+  #   method: cryptoHash
+  #   truncateToMaxLength: 32
