@@ -174,7 +174,7 @@ docker run --rm \
   -v "$(pwd)/input:/data:ro" \
   -v "$(pwd)/output:/output" \
   -v "$(pwd)/work:/work" \
-  ghcr.io/medizininformatik-initiative/dup-kalium360:v1.0.2
+  ghcr.io/medizininformatik-initiative/dup-kalium360:latest
 ```
 
 ### Releasen (für Betreuende)
