@@ -1,5 +1,5 @@
 # Kalium360 - Docker-Image
-FROM rocker/r-ver:4.4.2
+FROM rocker/r-ver:4.6.1
 
 # DL3008 (pin apt versions) ignored: apt package versions come from the
 # Ubuntu pockets and cannot be pinned reliably; reproducibility of the R
@@ -7,7 +7,7 @@ FROM rocker/r-ver:4.4.2
 # apt-get upgrade pulls in the Ubuntu security fixes released after the
 # rocker base image was built (e.g. CVEs in linux-libc-dev).
 # hadolint ignore=DL3008
-RUN apt-get update && apt-get upgrade -y \
+RUN apt-get update \
     && apt-get install -y --no-install-recommends \
     libcurl4-openssl-dev \
     libssl-dev \
@@ -15,7 +15,7 @@ RUN apt-get update && apt-get upgrade -y \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
-# Use CRAN-Snapshot from 01.08.2026 
+# Use CRAN-Snapshot from 01.08.2026
 ENV CRAN_SNAPSHOT_DATE=2026-08-01
 ENV CRAN_REPO=https://packagemanager.posit.co/cran/__linux__/jammy/${CRAN_SNAPSHOT_DATE}
 
