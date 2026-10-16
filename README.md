@@ -192,10 +192,8 @@ git checkout -b release-v9.9.9
 # README zudem die Versionsnummer eintragen
 git commit -am "prepare release v9.9.9"
 git tag -a v9.9.9 -m "Release v9.9.9"
-# erst NACH dem Taggen docker-compose.yml wieder auf `latest` zurücksetzen
-# (der Versionspin bleibt so nur im getaggten Commit), die README-Versionierung
-# aber stehen lassen, damit sie als Release-Doku in main erhalten bleibt
-sed -i 's|dup-kalium360:v9\.9\.9}|dup-kalium360:latest}|' docker-compose.yml
+# erst NACH dem Taggen docker-compose.yml und README.md wieder auf `latest`
+# zurücksetzen (der Versionspin bleibt so nur im getaggten Commit)
 git commit -am "post-release: docker-compose back to latest"
 git push origin release-v9.9.9 v9.9.9
 # danach PR von release-v9.9.9 nach main öffnen
@@ -206,8 +204,8 @@ wenn die Version die höchste bisher veröffentlichte ist. Ein Tag mit
 unzulässigem Versionsschema lässt den Build fehlschlagen. Das
 `docker-compose.yml` des Tags muss das Image exakt auf die Tag-Version pinnen
 (die CI prüft das); das README sollte diese Version ebenfalls nennen. Durch
-den Post-Release-Commit im PR nutzen `docker-compose.yml` nach dem Merge in
-`main` wieder `latest`.
+den Post-Release-Commit im PR nutzen `docker-compose.yml` und README nach dem
+Merge in `main` wieder `latest`.
 
 Der neueste (noch nicht freigegebene) Stand von `main` wird nach jedem Push
 gebaut, sicherheitsgeprüft und unter dem Tag `dev` veröffentlicht. Um ihn zu
