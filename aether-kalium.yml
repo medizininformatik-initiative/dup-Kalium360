@@ -29,7 +29,7 @@ services:
 
     # Path to the flatten-lookup.json file containing element-to-ViewDefinition mappings
     # This file maps CRTDL attributeRef values to SQL-on-FHIR ViewDefinition snippets
-    lookup_path: "../flatteningLookup.json"
+    lookup_path: "./flatteningLookup.json"
 
     # Output formats - currently only "csv" is supported
     formats:
