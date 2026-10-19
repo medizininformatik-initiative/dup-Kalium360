@@ -15,6 +15,18 @@ RUN apt-get update \
     zlib1g-dev \
     && rm -rf /var/lib/apt/lists/*
 
+# Reference BLAS/LAPACK instead of OpenBLAS: OpenBLAS selects CPU-specific
+# kernels at runtime and can crash with SIGILL ("illegal operation") on some
+# CPUs/VMs. Reference BLAS uses generic code that runs on every x86-64 CPU.
+# hadolint ignore=DL3008
+RUN apt-get update \
+    && apt-get install -y --no-install-recommends libblas3 liblapack3 \
+    && rm -rf /var/lib/apt/lists/* \
+    && ARCH="$(uname -m)-linux-gnu" \
+    && update-alternatives --set "libblas.so.3-${ARCH}" "/usr/lib/${ARCH}/blas/libblas.so.3" \
+    && update-alternatives --set "liblapack.so.3-${ARCH}" "/usr/lib/${ARCH}/lapack/liblapack.so.3" \
+    && R -e "cat('BLAS:', extSoftVersion()[['BLAS']], '\n')"
+
 # Use CRAN-Snapshot from 01.08.2026
 ENV CRAN_SNAPSHOT_DATE=2026-08-01
 ENV CRAN_REPO=https://packagemanager.posit.co/cran/__linux__/jammy/${CRAN_SNAPSHOT_DATE}
