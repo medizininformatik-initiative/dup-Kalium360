@@ -977,14 +977,16 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
     glue_sql("1 = 1", .con = con)
   }
 
+  value_norm_sql <- if (care_about_unit) {
+    glue_sql("o.value * uc.factor", .con = con)
+  } else {
+    glue_sql("COALESCE(o.value * uc.factor, o.value)", .con = con)
+  }
+
   query <- glue_sql("
     CREATE OR REPLACE TEMP TABLE {name} AS
       SELECT o.*,
-        CASE
-        WHEN {care_about_unit}
-        THEN o.value * uc.factor
-        ELSE o.value
-      END AS value_norm,
+      {value_norm_sql} AS value_norm
       FROM {name_raw} o
       LEFT JOIN unit_conversion uc
         ON uc.label = o.label

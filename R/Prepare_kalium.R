@@ -687,6 +687,17 @@ checkAvailableUnits <- function(unit_conversion) {
   }
 
   writeLogData("All units are defined")
+
+  additional_entries <- dbGetQuery(con, glue_sql("
+    SELECT label, source_unit
+    FROM unit_conversion
+    WHERE label IN ('GFR', 'pH')
+  ", .con = con))
+
+  if (nrow(entries) > 0) {
+    writeLogData("Note: unit_conversion has entries for GFR/pH (label, unit): ",
+                 additional_entries, kanonymity = FALSE)
+  }
 }
 
 checkConfig <- function() {
