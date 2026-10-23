@@ -1389,6 +1389,10 @@ checkEncounterReferences <- function(availability) {
     return(NULL)
   }
 
+  writeLogData("Note that no_encounter_reference does not necessarily mean that
+               there is no reference given in the resource. Torch removes
+               references if there is no matching resource in the dataset.")
+
   checkEncounterTypes("potassium")
 
   if(availability$medication) {

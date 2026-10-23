@@ -7,3 +7,4 @@ bicarbonat,mmol/L,mmol/L,1
 bicarbonat,meq/L,mmol/L,1
 crea,mg/dL,mg/dL,1
 crea,umol/L,mg/dL,0.0113
+GFR,mL/s/{1.73_m2},mL/min/{1.73_m2},60

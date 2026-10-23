@@ -687,6 +687,19 @@ checkAvailableUnits <- function(unit_conversion) {
   }
 
   writeLogData("All units are defined")
+
+  # check if there are additional pH or GFR rows in unit_conversion
+  additional_entries <- dbGetQuery(con, glue_sql("
+    SELECT label, source_unit
+    FROM unit_conversion
+    WHERE label IN ('GFR', 'pH')
+  ", .con = con))
+
+  # there is one pre configured GFR row. Therefore >1
+  if (nrow(additional_entries) > 1) {
+    writeLogData("Note: unit_conversion has additional entries for GFR/pH (label, unit): ",
+                 additional_entries, kanonymity = FALSE)
+  }
 }
 
 checkConfig <- function() {
