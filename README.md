@@ -88,10 +88,6 @@ standardmäßig das Tag `latest`. Ein lokales Bauen ist dafür nicht nötig.
    (PowerShell) gibt es `id` nicht: dort `--user ...` weglassen, der Container
    läuft dann mit der Standard-ID 1000.
 
-Wer eine exakt bestimmte Version nutzen möchte, ruft das Repository am
-zugehörigen Git-Tag auf (z. B. `git checkout v1.1.0`): Das `docker-compose.yml`
-dieses Tags pinnt das Image auf genau diese Version (siehe Abschnitt „Releasen“).
-
 Die Ergebnisse liegen anschließend im in `.env` hinterlegten Output-Ordner. Jeder Durchlauf erzeugt einen eigenen zeitgestempelten Unterordner. 
 
 Das Skript erzeugt folgende Output-Dateien:
