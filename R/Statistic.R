@@ -101,13 +101,18 @@ descriptiveStatistic <- function(availability, time_availability,
   next_combined <- dplyr::bind_rows(counts_all, counts_2h, counts_48h, counts_same_enc, counts_first)
 
   # apply k-Anonymity
-  next_combined <- applyKAnonymity(next_combined, c("n_match", "n_no_match"), c("gruppe","kohorte",result_col))
+  if (nrow(next_combined) == 0) {
+    writeLogData(paste0("No rows for 'next_measurement ", result_col, " ", age_and, "'. ",
+                        "Skipping"))
+  } else {
+    next_combined <- applyKAnonymity(next_combined, c("n_match", "n_no_match"), c("gruppe","kohorte",result_col))
 
-  # add a label
-  next_combined$source <- paste0("next_measurement ", result_col, " ", age_and)
+    # add a label
+    next_combined$source <- paste0("next_measurement ", result_col, " ", age_and)
 
-  # run for result as well as result_detail and add it to all_results
-  all_results <- c(all_results, list(next_combined))
+    # run for result as well as result_detail and add it to all_results
+    all_results <- c(all_results, list(next_combined))
+  }
 
   #writeLogData("Result of next measurement done.")
 
@@ -176,16 +181,21 @@ descriptiveStatistic <- function(availability, time_availability,
     # bind all together
     medication_combined <- bind_rows(counts_alle, counts_no_amb, counts_first, counts_alone)
 
-    # apply k-Anonymity
-    medication_combined <- applyKAnonymity(medication_combined,
-                                           c("n_match", "n_no_match"), c("gruppe","kohorte",result_col))
+    if (nrow(medication_combined) == 0) {
+      writeLogData(paste0("No rows for 'medication ", result_col, " ", age_and, "'. ",
+                          "Skipping"))
+    } else {
 
-    # add a label
-    medication_combined$source <- paste0("medication ", result_col, " ",age_and)
+      # apply k-Anonymity
+      medication_combined <- applyKAnonymity(medication_combined,
+                                             c("n_match", "n_no_match"), c("gruppe","kohorte",result_col))
 
-    # do it for each result type and add it to all_results
-    all_results <- c(all_results, list(medication_combined))
+      # add a label
+      medication_combined$source <- paste0("medication ", result_col, " ",age_and)
 
+      # do it for each result type and add it to all_results
+      all_results <- c(all_results, list(medication_combined))
+    }
 
     # Evaluate medication that is given AFTER the measurement
 
@@ -226,13 +236,18 @@ descriptiveStatistic <- function(availability, time_availability,
 
     counts_after_combined <- bind_rows(counts_after_alle, counts_after_no_amb, counts_after_first)
 
-    # apply k-Anonymity
-    counts_after_combined <- applyKAnonymity(counts_after_combined,
-                                             c("n_match", "n_no_match"), c("gruppe", "kohorte", result_col))
+    if (nrow(counts_after_combined) == 0) {
+      writeLogData(paste0("No rows for 'medication_after ", result_col, " ", age_and, "'. ",
+                          "Skipping."))
+    } else {
+      # apply k-Anonymity
+      counts_after_combined <- applyKAnonymity(counts_after_combined,
+                                               c("n_match", "n_no_match"), c("gruppe", "kohorte", result_col))
 
-    counts_after_combined$source <- paste0("medication_after ", result_col, " ", age_and)
+      counts_after_combined$source <- paste0("medication_after ", result_col, " ", age_and)
 
-    all_results <- c(all_results, list(counts_after_combined))
+      all_results <- c(all_results, list(counts_after_combined))
+    }
 
     #writeLogData("Medication done")
   }
@@ -298,13 +313,18 @@ descriptiveStatistic <- function(availability, time_availability,
     # bind all together
     counts_comb_lab <- bind_rows(result_lab_all, result_lab_first, result_lab_first_or_amb)
 
-    # apply k-Anonymity (note: no real k-anonymization because of matrix)
-    result_lab <- applyKAnonymity(counts_comb_lab,
-                                  c("n_match", "n_normal"), c("gruppe", "kohorte", result_col))
+    if (nrow(counts_comb_lab) == 0) {
+      writeLogData(paste0("No rows for 'lab ", result_col, " ", age_and, "'. ",
+                          "Skipping."))
+    } else {
+      # apply k-Anonymity (note: no real k-anonymization because of matrix)
+      result_lab <- applyKAnonymity(counts_comb_lab,
+                                    c("n_match", "n_normal"), c("gruppe", "kohorte", result_col))
 
-    result_lab$source <- paste0("lab ", result_col, " ", age_and)
+      result_lab$source <- paste0("lab ", result_col, " ", age_and)
 
-    all_results <- c(all_results, list(result_lab))
+      all_results <- c(all_results, list(result_lab))
+    }
 
     #writeLogData("Lab done")
   }
@@ -358,14 +378,18 @@ descriptiveStatistic <- function(availability, time_availability,
 
     counts_combined <- bind_rows(counts_alle, counts_no_amb, counts_first)
 
-    # apply k-anonymity
-    counts_combined <- applyKAnonymity(counts_combined,
-                                       c("n_match", "n_no_match"), c("gruppe", "kohorte", result_col))
+    if (nrow(counts_combined) == 0) {
+      writeLogData(paste0("No rows for 'procedures ", result_col, " ", age_and, "'. ",
+                          "Skipping."))
+    } else {
+      # apply k-anonymity
+      counts_combined <- applyKAnonymity(counts_combined,
+                                         c("n_match", "n_no_match"), c("gruppe", "kohorte", result_col))
 
-    counts_combined$source <- paste0("procedures ", result_col, " ", age_and)
+      counts_combined$source <- paste0("procedures ", result_col, " ", age_and)
 
-    all_results <- c(all_results, list(counts_combined))
-
+      all_results <- c(all_results, list(counts_combined))
+    }
     #writeLogData("Procedures done")
   }
 
@@ -422,13 +446,18 @@ descriptiveStatistic <- function(availability, time_availability,
     # bind all together
     counts_combined <- bind_rows(counts_alle, counts_no_amb, counts_first, counts_alone)
 
-    # apply k-Anonymity
-    counts_combined <- applyKAnonymity(counts_combined,
-                                       c("n_match", "n_no_match"), c("gruppe","kohorte",result_col))
+    if (nrow(counts_combined) == 0) {
+      writeLogData(paste0("No rows for 'conditions ", result_col, " ", age_and, "'. ",
+                          "Skipping."))
+    } else {
+      # apply k-Anonymity
+      counts_combined <- applyKAnonymity(counts_combined,
+                                         c("n_match", "n_no_match"), c("gruppe","kohorte",result_col))
 
-    counts_combined$source <- paste0("conditions ", result_col, " ", age_and)
+      counts_combined$source <- paste0("conditions ", result_col, " ", age_and)
 
-    all_results <- c(all_results, list(counts_combined))
+      all_results <- c(all_results, list(counts_combined))
+    }
 
     #writeLogData("Conditions done")
   }
