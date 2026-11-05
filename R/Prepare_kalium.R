@@ -50,7 +50,7 @@ createBasePotassiumTable <- function() {
               ELSE TRIM(CAST({`pat_gebdat`} AS VARCHAR))
             END
           AS DATE) AS gebdat_normalized
-        FROM read_csv_auto({path})
+        FROM read_csv_auto({path}, all_varchar = TRUE)
       ", .con = con)
 
   dbExecute(con, query)
