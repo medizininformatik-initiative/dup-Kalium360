@@ -294,7 +294,7 @@ loadEncounter <- function() {
             enc.{`enc_period_start`} AS period_start,
             enc.{`enc_period_end`} AS period_end,
             enc.{`enc_type`} AS type
-      FROM read_csv_auto({path}, {types_clause}) enc
+      FROM read_csv_auto({path}, {csv_opts}, {types_clause}) enc
       WHERE (enc.{`enc_status`} IS NULL
         OR NOT enc.{`enc_status`} IN ('planned', 'cancelled', 'entered-in-error'))
       AND (enc.{`enc_type_system`} IS NULL OR {`enc_type_system`} = 'http://fhir.de/CodeSystem/Kontaktebene')
@@ -415,7 +415,7 @@ loadMedicationData <- function() {
             med.{`med_atc`} AS atc,
             med.{`med_med_ref`} AS med_med_ref,
             concat('Medication/', med.{`med_id`}) AS med_ref_full
-      FROM read_csv_auto({path_med}) med;
+      FROM read_csv_auto({path_med}, {csv_opts}) med;
       ", .con = con)
     count <- dbExecute(con, query)
     writeLogData("Total medication rows: ", count)
@@ -462,7 +462,7 @@ loadMedicationData <- function() {
               adm.{`adm_effective`} AS effective,
               adm.{`adm_enc`} AS encounter,
               adm.{`adm_med_ref`} AS med_ref
-        FROM read_csv_auto({path_adm}, {types_clause}) adm
+        FROM read_csv_auto({path_adm}, {csv_opts}, {types_clause}) adm
         WHERE adm.{`adm_status`} IS NULL
           OR NOT adm.{`adm_status`} IN ('not-done', 'on-hold', 'entered-in-error', 'stopped');
         ", .con = con)
@@ -530,7 +530,7 @@ loadMedicationData <- function() {
           CAST(NULL AS VARCHAR) AS med_id2,
           adm.{`adm_med_atc`} AS atc,
           'medadm_code' AS source
-          FROM read_csv_auto({path_adm},{types_clause}) adm
+          FROM read_csv_auto({path_adm}, {csv_opts}, {types_clause}) adm
           WHERE adm.{`adm_status`} IS NULL
             OR NOT adm.{`adm_status`} IN ('not-done', 'on-hold', 'entered-in-error', 'stopped')
         ", .con = con)
@@ -567,7 +567,7 @@ loadMedicationData <- function() {
               adm.{`adm_effective`} AS effective,
               adm.{`adm_enc`} AS encounter,
               adm.{`adm_med_ref`} AS med_ref
-        FROM read_csv_auto({path_adm}, {types_clause}) adm
+        FROM read_csv_auto({path_adm}, {csv_opts}, {types_clause}) adm
         WHERE adm.{`adm_status`} IS NULL
          OR NOT adm.{`adm_status`} IN ('not-done', 'on-hold', 'entered-in-error', 'stopped');
         ", .con = con)
@@ -814,7 +814,7 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
           {issued_expr} AS issued,
           o.{`obs_encounter`} AS encounter,
           {name} AS label
-        FROM read_csv_auto({path}, {types_clause}) o
+        FROM read_csv_auto({path}, {csv_opts}, {types_clause}) o
         WHERE (o.{`obs_status`} IS NULL
           OR NOT o.{`obs_status`} IN ('cancelled', 'entered-in-error'))
         AND o.{`obs_loinc_system`} = 'http://loinc.org'
@@ -1145,7 +1145,7 @@ loadProcedures <- function() {
                   WHEN {`pro_ops_code`} IS NOT NULL THEN 'ops'
                   WHEN {`pro_sno_code`} IS NOT NULL THEN 'snomed'
               END AS code_type
-            FROM read_csv_auto({path},{types_clause}) pro
+            FROM read_csv_auto({path}, {csv_opts}, {types_clause}) pro
             WHERE ( {`pro_status`} IS NULL
               OR NOT {`pro_status`} IN ('stopped', 'entered-in-error', 'on-hold', 'preparation', 'not-done'))
             AND (
@@ -1188,7 +1188,7 @@ loadProcedures <- function() {
               {`obs_time`} AS performed,
               {`obs_encounter`} AS encounter,
               'icu_dauer' AS code_type
-            FROM read_csv_auto({path}, {types_clause}) pro
+            FROM read_csv_auto({path}, {csv_opts}, {types_clause}) pro
             WHERE ({`obs_status`} IS NULL
               OR NOT {`obs_status`} IN ('registered', 'preliminary', 'cancelled','entered-in-error'))
           ", .con = con)
@@ -1283,7 +1283,7 @@ loadConditions <- function() {
               {`con_recorded`} AS time,
               {`con_encounter`} AS encounter,
               {`con_icd`} AS icd
-            FROM read_csv_auto({path}) c
+            FROM read_csv_auto({path}, {csv_opts}) c
             WHERE ({`con_status`} IS NULL
             OR NOT {`con_status`} IN ('inactive', 'remission'))
             AND   ({`con_veri`} IS NULL

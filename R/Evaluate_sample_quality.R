@@ -64,7 +64,7 @@ createTablesForSampleQuality <- function() {
           {`obs_reference_low`} AS ref_low,
           {`obs_interpretation`} AS interpretation,
           {basedOn_expr} AS basedon
-        FROM read_csv_auto({path},{types_clause})
+        FROM read_csv_auto({path},{csv_opts}, {types_clause})
         WHERE {`obs_loinc_system`} = 'http://loinc.org'
         AND {`obs_loinc`} IN ({LOINCs_Quality*})
         AND {`obs_time`} >= {global_min_time}
@@ -94,7 +94,7 @@ createTablesForSampleQuality <- function() {
         {type_expr} AS type,
         {`spec_cond`} As condition,
         {`spec_cond_system`} As condition_system
-        FROM read_csv_auto({path})
+        FROM read_csv_auto({path}, {csv_opts})
       ", .con = con)
 
     dbExecute(con, query)
@@ -224,7 +224,7 @@ evaluateQualityLOINCs <- function() {
     path <- paste0(data_dir, "/", name_of_lab_csv)
 
     csv_cols <- dbGetQuery(con, glue_sql(
-      "DESCRIBE SELECT * FROM read_csv_auto({path}) LIMIT 0",
+      "DESCRIBE SELECT * FROM read_csv_auto({path}, {csv_opts}) LIMIT 0",
       .con = con
     ))$column_name
 
@@ -617,7 +617,7 @@ evaluateNotes <- function(quality_loincs_available) {
         {`obs_id`} AS obs_id,
         {`obs_loinc`}  AS loinc,
         {`obs_note`}   AS note
-      FROM read_csv({path},all_varchar = true)
+      FROM read_csv({path},{csv_opts}, all_varchar = true)
       WHERE ({`obs_status`} IS NULL
             OR NOT {`obs_status`} IN ('cancelled', 'entered-in-error'))
         AND {`obs_note`} IS NOT NULL
