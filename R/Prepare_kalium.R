@@ -50,7 +50,7 @@ createBasePotassiumTable <- function() {
               ELSE TRIM(CAST({`pat_gebdat`} AS VARCHAR))
             END
           AS DATE) AS gebdat_normalized
-        FROM read_csv_auto({path}, all_varchar = TRUE)
+        FROM read_csv_auto({path}, {csv_opts}, all_varchar = TRUE)
       ", .con = con)
 
   dbExecute(con, query)
@@ -129,7 +129,7 @@ createBasePotassiumTable <- function() {
           gender,
           date_sub('year', pat.gebdat_normalized,
                     ({`obs_time`}::TIMESTAMP)::DATE) AS age
-        FROM read_csv_auto({path}, {types_clause}) pot
+        FROM read_csv_auto({path}, {csv_opts}, {types_clause}) pot
         LEFT JOIN patients pat
         ON pot.{`obs_patient`} = concat('Patient/', pat.pat_id)
         WHERE ({`obs_status`} IS NULL
@@ -513,9 +513,8 @@ addCompareValue <- function(table, value = TRUE, value_norm = TRUE) {
 }
 
 loadUnitConversionFile <- function() {
+
   # load unit_conversion.csv
-  # unit_conversion <- read.csv("unit_conversion.csv", stringsAsFactors = FALSE,
-  #                             fileEncoding = "UTF-8-BOM")
   path <- "unit_conversion.csv"
 
   # get all columns form unit_conversion
@@ -639,7 +638,7 @@ checkAvailableUnits <- function(unit_conversion) {
           WHEN {`obs_loinc`} IN ({LOINCs_glucose*})    THEN 'glucose'
           ELSE NULL
         END AS label
-      FROM read_csv_auto({path}) obs
+      FROM read_csv_auto({path}, {csv_opts}) obs
       WHERE ({`obs_status`} IS NULL
          OR NOT {`obs_status`} IN ('cancelled', 'entered-in-error'))
       AND {`obs_loinc_system`} = 'http://loinc.org'

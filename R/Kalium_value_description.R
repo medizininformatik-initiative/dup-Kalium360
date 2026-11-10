@@ -62,7 +62,7 @@ createTablesForPotassiumAnalysis <- function() {
   query <- glue_sql("
         CREATE OR REPLACE TEMP TABLE potassium_data_raw AS
         SELECT *
-        FROM read_csv_auto({path}, {types_clause})
+        FROM read_csv_auto({path}, {csv_opts}, {types_clause})
         WHERE {`obs_loinc_system`} = 'http://loinc.org'
         AND {`obs_loinc`} IN ({LOINCs_Kalium*})
         AND {`obs_time`} >= {global_min_time}

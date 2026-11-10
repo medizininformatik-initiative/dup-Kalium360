@@ -62,9 +62,12 @@ startKalium <- function() {
   tempdir <- paste0(working_dir, "/temp_Duckdb")
   DBI::dbExecute(con, glue_sql("SET temp_directory = {tempdir};", .con = con))
 
-
   # disable DuckDB progress-bar. This clutters the log.
   DBI::dbExecute(con, "PRAGMA disable_progress_bar;")
+
+  # Fixed quote character for CSV imports. Auto-detection can miss it when
+  # quoted values are rare, so labels with commas would break the import.
+  csv_opts <<- DBI::SQL("quote = '\"'")
 
   # create a base table that is used by all parts
   # and check input files
