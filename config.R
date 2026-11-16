@@ -12,6 +12,11 @@ used_CRTDL <- "please define"
 # .env file), which takes precedence over this value.
 site_pseudonym <- "please define"
 
+# OPTIONAL: memory limit for DuckDB in GB (e.g. 12). If you do not set
+# a value DuckDB uses its default.
+memory_limit_gb <- NULL
+
+
 ###############################################################################
 ###############################################################################
 

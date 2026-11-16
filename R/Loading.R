@@ -196,6 +196,8 @@ loadPotassiumData <- function() {
   count_result <- dbExecute(con, query)
   writeLogData("Total count of potassium values: ", count_result)
 
+  checkForDuplicates("potassium_result", "obs_id")
+
   # base table for blood/serum analysis
   query <- glue_sql("
     CREATE OR REPLACE TEMP TABLE potassium_result_loinc AS
@@ -487,9 +489,7 @@ loadMedicationData <- function() {
             OR (
                adm.{`adm_period_start`} <= {global_max_time}
                AND (adm.{`adm_period_end`} IS NULL OR adm.{`adm_period_end`} >= {global_min_time})
-             )
-        )
-
+             ))
         ", .con = con)
       dbExecute(con, query)
 
@@ -562,8 +562,7 @@ loadMedicationData <- function() {
             OR (
                adm.{`adm_period_start`} <= {global_max_time}
                AND (adm.{`adm_period_end`} IS NULL OR adm.{`adm_period_end`} >= {global_min_time})
-             )
-            )
+             ))
         ", .con = con)
     count <- dbExecute(con, query)
     writeLogData("Total codeableconcept administrations: ", count)
