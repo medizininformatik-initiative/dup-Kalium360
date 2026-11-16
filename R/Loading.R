@@ -30,7 +30,7 @@ loadPotassiumData <- function() {
 
   reference_type <- dbGetQuery(con, query)
 
-  if (all(is.na(reference_type$obs_reference_type))) {
+  if (all(is.na(reference_type$ref_type))) {
     writeLogData("No reference range type available")
   } else {
     writeLogData("Found reference types: ", reference_type)
@@ -58,13 +58,13 @@ loadPotassiumData <- function() {
     SELECT
       COUNT(*) AS n
       FROM potassium
-      WHERE age < 1
+      WHERE age < 2
   ", .con = con)
 
   babys <- dbGetQuery(con, query)$n
 
   if (babys > 0) {
-    writeLogData("Measurements excluded because age < 1 : ", babys)
+    writeLogData("Measurements excluded because age < 2 : ", babys)
   }
 
   # if there is strange stuff in units there is the possibility to mark
@@ -736,11 +736,7 @@ loadMedicationData <- function() {
     dbExecute(con, "
       CREATE OR REPLACE TEMP VIEW medadm_all_end AS
       SELECT *,
-         COALESCE(
-           CAST(effective    AS TIMESTAMPTZ),
-           CAST(period_end   AS TIMESTAMPTZ),
-           CAST(period_start AS TIMESTAMPTZ)
-         ) AS time
+         COALESCE(effective, period_end, period_start) AS time
       FROM medadm_all
     ")
 
@@ -748,10 +744,7 @@ loadMedicationData <- function() {
     dbExecute(con, "
       CREATE OR REPLACE TEMP VIEW medadm_all_start AS
       SELECT *,
-         COALESCE(
-           CAST(effective AS TIMESTAMPTZ),
-           CAST(period_start AS TIMESTAMPTZ)
-         ) AS time
+         COALESCE(effective, period_start) AS time
       FROM medadm_all
     ")
 
@@ -907,7 +900,7 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
 
   reference_type <- dbGetQuery(con, query)
 
-  if (all(is.na(reference_type$obs_reference_type))) {
+  if (all(is.na(reference_type$ref_type))) {
     writeLogData("No reference range type available")
   } else {
     writeLogData("Found reference types: ", reference_type)
@@ -1323,10 +1316,7 @@ loadProcedures <- function() {
       dbExecute(con, "
       CREATE OR REPLACE TEMP VIEW procedures_start AS
       SELECT *,
-         COALESCE(
-           CAST(performed    AS TIMESTAMPTZ),
-           CAST(period_start  AS TIMESTAMPTZ)
-         ) AS time
+         COALESCE(performed, period_start) AS time
       FROM procedures
       ")
 
