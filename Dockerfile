@@ -8,6 +8,7 @@ FROM rocker/r-ver:4.6.1
 # rocker base image was built (e.g. CVEs in linux-libc-dev).
 # hadolint ignore=DL3008
 RUN apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
     libcurl4-openssl-dev \
     libssl-dev \

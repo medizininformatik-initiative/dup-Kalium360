@@ -50,6 +50,7 @@ obs_reference_high <- "Observation_referenceRange_high_value"
 obs_reference_low <- "Observation_referenceRange_low_value"
 obs_reference_high_unit <- "Observation_referenceRange_high_code"
 obs_reference_low_unit <- "Observation_referenceRange_low_code"
+obs_reference_type <- "Observation_referenceRange_type_coding_code"
 obs_time <- "Observation_effective_X_Effectivedatetime"
 obs_issued <- "Observation_issued"
 obs_patient <- "patient" # in the format: Patient/id
@@ -148,7 +149,7 @@ glucose_ref <- list(low = 70, high = 110,
 bicarbonat_ref <- list(low = 21, high = 26,
                        low_ext = 5, high_ext = 50)
 crea_ref <- list(low = NA_real_, high = NA_real_,
-                 low_ext = 0.2, high_ext = 18)
+                 low_ext = 0.1, high_ext = 18)
 pH_ref <- list(low = 7.35, high = 7.45,
                low_ext = 6.8, high_ext = 7.8)
 GFR_ref <- list(low = 60, high = NA_real_,

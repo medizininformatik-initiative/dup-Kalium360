@@ -4,7 +4,7 @@ evaluateCovariates <- function() {
   writeLogHeader("Part3: Evaluate Covariates", "This part evaluates if potassium
                  values can be matched to available covariates like further
                  lab-results medication, diagnosis and procedures and have an
-                 encounter context. Children under one year are excluded.")
+                 encounter context. Children under two years are excluded.")
 
   writeLog("Preparing potassium table")
 

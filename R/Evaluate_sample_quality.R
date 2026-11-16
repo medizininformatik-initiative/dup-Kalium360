@@ -45,8 +45,10 @@ createTablesForSampleQuality <- function() {
   types_clause <- getTypeClause(obs_value_code = "VARCHAR",
                                 obs_value = "DOUBLE",
                                 obs_value_unit = "VARCHAR",
+                                obs_interpretation = "VARCHAR",
                                 obs_reference_low = "DOUBLE",
-                                obs_reference_high = "DOUBLE")
+                                obs_reference_high = "DOUBLE",
+                                obs_time = "TIMESTAMP")
 
   # create a table with all available quality loincs
   query <- glue_sql("
@@ -246,11 +248,11 @@ evaluateQualityLOINCs <- function() {
         # get the referecetype of basedon (like Servicerequest)
         query <- glue_sql("
           SELECT
-              split_part(basedon, '/', 1) AS ref_type,
+              split_part(basedon, '/', 1) AS basedon_type,
                 count(*) AS count
               FROM potassium
               WHERE basedon IS NOT NULL
-              GROUP BY ref_type
+              GROUP BY basedon_type
           ", .con = con)
         basedon_prefix <- dbGetQuery(con, query)
         writeLogData("BasedOn reference type: ", basedon_prefix)
@@ -609,22 +611,29 @@ evaluateNotes <- function(quality_loincs_available) {
 
   if (obs_note %in% csv_cols) {
 
-    # create a table just for notes. Cast all as varchar to prevent
-    # casting problems with notes.
+    # create a table just for notes.
+    types_clause <- getTypeClause(obs_note = "VARCHAR",
+                                  obs_id = "VARCHAR",
+                                  obs_loinc = "VARCHAR",
+                                  obs_status = "VARCHAR",
+                                  obs_loinc_system = "VARCHAR",
+                                  obs_time = "TIMESTAMP")
+
     query <- glue_sql("
-    CREATE OR REPLACE TEMP TABLE lab_notes AS
-      SELECT distinct
-        {`obs_id`} AS obs_id,
-        {`obs_loinc`}  AS loinc,
-        {`obs_note`}   AS note
-      FROM read_csv({path},{csv_opts}, all_varchar = true)
-      WHERE ({`obs_status`} IS NULL
-            OR NOT {`obs_status`} IN ('cancelled', 'entered-in-error'))
-        AND {`obs_note`} IS NOT NULL
-        AND {`obs_loinc_system`} = 'http://loinc.org'
-        AND CAST({`obs_time`} AS TIMESTAMP) >= {global_min_time}
-        AND CAST({`obs_time`} AS TIMESTAMP) <= {global_max_time}
+      CREATE OR REPLACE TEMP TABLE lab_notes AS
+        SELECT DISTINCT
+          {`obs_id`}    AS obs_id,
+          {`obs_loinc`} AS loinc,
+          {`obs_note`}  AS note
+        FROM read_csv({path}, {csv_opts}, {types_clause})
+        WHERE ({`obs_status`} IS NULL
+              OR NOT {`obs_status`} IN ('cancelled', 'entered-in-error'))
+          AND {`obs_note`} IS NOT NULL
+          AND {`obs_loinc_system`} = 'http://loinc.org'
+          AND {`obs_time`} >= {global_min_time}
+          AND {`obs_time`} <= {global_max_time}
       ", .con = con)
+
     dbExecute(con, query)
 
     checkForDuplicates("lab_notes", "obs_id")
