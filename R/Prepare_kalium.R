@@ -89,7 +89,14 @@ createBasePotassiumTable <- function() {
   # it could happen that issued is missing in .csv. Check and make the
   # query save in case it happens
 
-  issued_expr <- getColumnExpr(name_of_lab_csv, obs_issued, "TIMESTAMP")
+  csv_cols <- dbGetQuery(con, glue_sql(
+    "DESCRIBE SELECT * FROM read_csv_auto({path}) LIMIT 0", .con = con))$column_name
+
+  issued_expr <- if (obs_issued %in% csv_cols) {
+    glue_sql("{`obs_issued`}", .con = con)
+  } else {
+    DBI::SQL("CAST(NULL AS TIMESTAMP)")
+  }
 
   basedon_expr <- getColumnExpr(name_of_lab_csv, obs_basedon, "VARCHAR")
 
@@ -100,7 +107,10 @@ createBasePotassiumTable <- function() {
                                 obs_reference_low = "DOUBLE",
                                 obs_reference_high = "DOUBLE",
                                 obs_reference_high_unit = "VARCHAR",
-                                obs_reference_low_unit = "VARCHAR")
+                                obs_reference_low_unit = "VARCHAR",
+                                obs_time = "TIMESTAMP",
+                                obs_issued = "TIMESTAMP",
+                                csv_cols = csv_cols)
 
   # core table with potassium patient join
   query <- glue_sql("
@@ -116,6 +126,7 @@ createBasePotassiumTable <- function() {
           {`obs_reference_high`} AS ref_high,
           {`obs_reference_high_unit`} AS ref_high_unit,
           {`obs_reference_low_unit`} AS ref_low_unit,
+          {`obs_reference_type`} AS ref_type,
           {`obs_value_comp`} AS comparator,
           {`obs_patient`} AS patient,
           {`obs_time`} AS time,
@@ -625,8 +636,6 @@ checkAvailableUnits <- function(unit_conversion) {
 
   path <- paste0(data_dir, "/", name_of_lab_csv)
 
-  margin_sql <- sprintf("INTERVAL '%d hours'", max(lab_windows))
-
   query <- glue_sql("
     SELECT DISTINCT unit, label FROM (
       SELECT DISTINCT
@@ -643,8 +652,8 @@ checkAvailableUnits <- function(unit_conversion) {
          OR NOT {`obs_status`} IN ('cancelled', 'entered-in-error'))
       AND {`obs_loinc_system`} = 'http://loinc.org'
       AND {`obs_loinc`} IN ({all_loincs*})
-      AND {`obs_time`} >= {global_min_time} - {DBI::SQL(margin_sql)}
-      AND {`obs_time`} <= {global_max_time} + {DBI::SQL(margin_sql)}
+      AND {`obs_time`} >= {global_min_time}
+      AND {`obs_time`} <= {global_max_time}
       AND label IS NOT NULL
       AND unit IS NOT NULL
     ) t
@@ -745,7 +754,8 @@ checkConfig <- function() {
                 obs_id, obs_reference_high, obs_reference_low, obs_reference_high_unit,
                 obs_reference_low_unit, obs_time, obs_patient, obs_status,
                 obs_interpretation, obs_value_code, obs_value_code_system, obs_specimen,
-                obs_encounter, obs_method_code, obs_method_system, obs_id_content)
+                obs_encounter, obs_method_code, obs_method_system, obs_id_content,
+                obs_reference_type)
 
   patient_cols <- c(pat_id, pat_gebdat, pat_gender)
 

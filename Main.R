@@ -17,7 +17,7 @@ source("./R/Evaluate_covariates.R")
 source("./R/Loading.R")
 source("./R/Statistic.R")
 
-version <- "1.0.4"
+version <- "1.1.0"
 
 startKalium <- function() {
 
@@ -64,6 +64,11 @@ startKalium <- function() {
 
   # disable DuckDB progress-bar. This clutters the log.
   DBI::dbExecute(con, "PRAGMA disable_progress_bar;")
+
+  # set optional memory limit
+  if (!is.null(memory_limit_gb)) {
+    DBI::dbExecute(con, paste0("SET memory_limit = '", memory_limit_gb, "GB';"))
+  }
 
   # Fixed quote character for CSV imports. Auto-detection can miss it when
   # quoted values are rare, so labels with commas would break the import.

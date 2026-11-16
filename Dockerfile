@@ -1,5 +1,5 @@
 # Kalium360 - Docker-Image
-FROM rocker/r-ver:4.6.1
+FROM rocker/r-ver:4.6.2
 
 # DL3008 (pin apt versions) ignored: apt package versions come from the
 # Ubuntu pockets and cannot be pinned reliably; reproducibility of the R
@@ -8,6 +8,7 @@ FROM rocker/r-ver:4.6.1
 # rocker base image was built (e.g. CVEs in linux-libc-dev).
 # hadolint ignore=DL3008
 RUN apt-get update \
+    && apt-get upgrade -y \
     && apt-get install -y --no-install-recommends \
     libcurl4-openssl-dev \
     libssl-dev \

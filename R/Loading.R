@@ -21,6 +21,21 @@ loadPotassiumData <- function() {
                  , unit_mismatches)
   }
 
+  # check type of reference range
+  query <- glue_sql("
+      SELECT ref_type, count(*) as n
+      FROM potassium
+      GROUP BY ref_type
+    ", .con = con)
+
+  reference_type <- dbGetQuery(con, query)
+
+  if (all(is.na(reference_type$ref_type))) {
+    writeLogData("No reference range type available")
+  } else {
+    writeLogData("Found reference types: ", reference_type)
+  }
+
   # count values without unit
   query <- glue_sql("
     SELECT
@@ -43,13 +58,13 @@ loadPotassiumData <- function() {
     SELECT
       COUNT(*) AS n
       FROM potassium
-      WHERE age < 1
+      WHERE age < 2
   ", .con = con)
 
   babys <- dbGetQuery(con, query)$n
 
   if (babys > 0) {
-    writeLogData("Measurements excluded because age < 1 : ", babys)
+    writeLogData("Measurements excluded because age < 2 : ", babys)
   }
 
   # if there is strange stuff in units there is the possibility to mark
@@ -94,7 +109,7 @@ loadPotassiumData <- function() {
   # create raw table with value_norm and interpretation of result as (L/N/H)
   # and as a more detailed result (L3/L2/L1/N/H1/H2/H3/H4)
   # In case there is no defined reference range default reference values are
-  # applied. Children under 1 are excluded. Age NULL is allowed. In case
+  # applied. Children under 2 are excluded. Age NULL is allowed. In case
   # there is a systematic problem with age we dont want to loose all data
 
   query <- glue_sql("
@@ -130,7 +145,7 @@ loadPotassiumData <- function() {
       END AS result_detail
 
     FROM potassium_result_raw
-    WHERE age > 0 OR age IS NULL
+    WHERE age > 1 OR age IS NULL
   ", .con = con)
 
   dbExecute(con, query)
@@ -180,6 +195,8 @@ loadPotassiumData <- function() {
 
   count_result <- dbExecute(con, query)
   writeLogData("Total count of potassium values: ", count_result)
+
+  checkForDuplicates("potassium_result", "obs_id")
 
   # base table for blood/serum analysis
   query <- glue_sql("
@@ -280,7 +297,8 @@ loadEncounter <- function() {
   }
 
   types_clause <- getTypeClause(enc_period_start = "TIMESTAMP",
-                                enc_period_end = "TIMESTAMP")
+                                enc_period_end = "TIMESTAMP",
+                                enc_type = "VARCHAR")
 
   path <- paste0(data_dir, "/", name_of_encounter_csv)
 
@@ -297,7 +315,9 @@ loadEncounter <- function() {
       FROM read_csv_auto({path}, {csv_opts}, {types_clause}) enc
       WHERE (enc.{`enc_status`} IS NULL
         OR NOT enc.{`enc_status`} IN ('planned', 'cancelled', 'entered-in-error'))
-      AND (enc.{`enc_type_system`} IS NULL OR {`enc_type_system`} = 'http://fhir.de/CodeSystem/Kontaktebene')
+      AND (enc.{`enc_type_system`} IS NULL OR enc.{`enc_type_system`} = 'http://fhir.de/CodeSystem/Kontaktebene')
+      AND enc.{`enc_period_start`} <= {global_max_time}
+      AND (enc.{`enc_period_end`} IS NULL OR enc.{`enc_period_end`} >= {global_min_time})
       ", .con = con)
   dbExecute(con, query)
 
@@ -463,8 +483,13 @@ loadMedicationData <- function() {
               adm.{`adm_enc`} AS encounter,
               adm.{`adm_med_ref`} AS med_ref
         FROM read_csv_auto({path_adm}, {csv_opts}, {types_clause}) adm
-        WHERE adm.{`adm_status`} IS NULL
-          OR NOT adm.{`adm_status`} IN ('not-done', 'on-hold', 'entered-in-error', 'stopped');
+        WHERE (adm.{`adm_status`} IS NULL
+            OR NOT adm.{`adm_status`} IN ('not-done', 'on-hold', 'entered-in-error', 'stopped'))
+          AND (adm.{`adm_effective`} BETWEEN {global_min_time} AND {global_max_time}
+            OR (
+               adm.{`adm_period_start`} <= {global_max_time}
+               AND (adm.{`adm_period_end`} IS NULL OR adm.{`adm_period_end`} >= {global_min_time})
+             ))
         ", .con = con)
       dbExecute(con, query)
 
@@ -531,8 +556,13 @@ loadMedicationData <- function() {
           adm.{`adm_med_atc`} AS atc,
           'medadm_code' AS source
           FROM read_csv_auto({path_adm}, {csv_opts}, {types_clause}) adm
-          WHERE adm.{`adm_status`} IS NULL
-            OR NOT adm.{`adm_status`} IN ('not-done', 'on-hold', 'entered-in-error', 'stopped')
+          WHERE (adm.{`adm_status`} IS NULL
+            OR NOT adm.{`adm_status`} IN ('not-done', 'on-hold', 'entered-in-error', 'stopped'))
+            AND (adm.{`adm_effective`} BETWEEN {global_min_time} AND {global_max_time}
+            OR (
+               adm.{`adm_period_start`} <= {global_max_time}
+               AND (adm.{`adm_period_end`} IS NULL OR adm.{`adm_period_end`} >= {global_min_time})
+             ))
         ", .con = con)
     count <- dbExecute(con, query)
     writeLogData("Total codeableconcept administrations: ", count)
@@ -568,8 +598,13 @@ loadMedicationData <- function() {
               adm.{`adm_enc`} AS encounter,
               adm.{`adm_med_ref`} AS med_ref
         FROM read_csv_auto({path_adm}, {csv_opts}, {types_clause}) adm
-        WHERE adm.{`adm_status`} IS NULL
-         OR NOT adm.{`adm_status`} IN ('not-done', 'on-hold', 'entered-in-error', 'stopped');
+        WHERE (adm.{`adm_status`} IS NULL
+          OR NOT adm.{`adm_status`} IN ('not-done', 'on-hold', 'entered-in-error', 'stopped'))
+         AND (adm.{`adm_effective`} BETWEEN {global_min_time} AND {global_max_time}
+            OR (
+               adm.{`adm_period_start`} <= {global_max_time}
+               AND (adm.{`adm_period_end`} IS NULL OR adm.{`adm_period_end`} >= {global_min_time})
+             ))
         ", .con = con)
       dbExecute(con, query)
 
@@ -681,7 +716,7 @@ loadMedicationData <- function() {
 
     time_counts <- dbGetQuery(con, count_query)
 
-    writeLogData("Found timestamps: total_medicatiions/period_start/period_end/effective/start = end: ")
+    writeLogData("Found timestamps: total_medications/period_start/period_end/effective/start = end: ")
     writeLogData(time_counts)
 
     #delete the initial tables
@@ -700,11 +735,7 @@ loadMedicationData <- function() {
     dbExecute(con, "
       CREATE OR REPLACE TEMP VIEW medadm_all_end AS
       SELECT *,
-         COALESCE(
-           CAST(effective    AS TIMESTAMPTZ),
-           CAST(period_end   AS TIMESTAMPTZ),
-           CAST(period_start AS TIMESTAMPTZ)
-         ) AS time
+         COALESCE(effective, period_end, period_start) AS time
       FROM medadm_all
     ")
 
@@ -712,10 +743,7 @@ loadMedicationData <- function() {
     dbExecute(con, "
       CREATE OR REPLACE TEMP VIEW medadm_all_start AS
       SELECT *,
-         COALESCE(
-           CAST(effective AS TIMESTAMPTZ),
-           CAST(period_start AS TIMESTAMPTZ)
-         ) AS time
+         COALESCE(effective, period_start) AS time
       FROM medadm_all
     ")
 
@@ -783,7 +811,14 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
 
   name_raw <- paste0(name, "_raw")
 
-  issued_expr <- getColumnExpr(name_of_lab_csv, obs_issued, "TIMESTAMP")
+  csv_cols <- dbGetQuery(con, glue_sql(
+    "DESCRIBE SELECT * FROM read_csv_auto({path}) LIMIT 0", .con = con))$column_name
+
+  issued_expr <- if (obs_issued %in% csv_cols) {
+    glue_sql("{`obs_issued`}", .con = con)
+  } else {
+    DBI::SQL("CAST(NULL AS TIMESTAMP)")
+  }
 
   types_clause <- getTypeClause(obs_value_code = "VARCHAR",
                                obs_value = "DOUBLE",
@@ -791,10 +826,10 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
                                obs_reference_low = "DOUBLE",
                                obs_reference_high = "DOUBLE",
                                obs_reference_high_unit = "VARCHAR",
-                               obs_reference_low_unit = "VARCHAR")
-
-  # we need all the lab data inside global min/max plus the max lab window
-  margin_sql <- sprintf("INTERVAL '%d hours'", max(lab_windows))
+                               obs_reference_low_unit = "VARCHAR",
+                               obs_time = "TIMESTAMP",
+                               obs_issued = "TIMESTAMP",
+                               csv_cols = csv_cols)
 
   query <- glue_sql("
         CREATE OR REPLACE TEMP TABLE {name_raw} AS
@@ -807,6 +842,7 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
           o.{`obs_reference_high`} AS ref_high,
           o.{`obs_reference_high_unit`} AS ref_high_unit,
           o.{`obs_reference_low_unit`} AS ref_low_unit,
+          o.{`obs_reference_type`} AS ref_type,
           o.{`obs_value_comp`} AS comparator,
           o.{`obs_patient`} AS patient,
           o.{`obs_value_code`} AS codeableconcept,
@@ -819,8 +855,8 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
           OR NOT o.{`obs_status`} IN ('cancelled', 'entered-in-error'))
         AND o.{`obs_loinc_system`} = 'http://loinc.org'
         AND o.{`obs_loinc`} IN ({loincs*})
-        AND o.{`obs_time`} >= {global_min_time} - {DBI::SQL(margin_sql)}
-        AND o.{`obs_time`} <= {global_max_time} + {DBI::SQL(margin_sql)}
+        AND o.{`obs_time`} >= {global_min_time}
+        AND o.{`obs_time`} <= {global_max_time}
       ", .con = con)
   count <- dbExecute(con, query)
 
@@ -852,6 +888,21 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
     writeLogData(paste0("Warning: In ", name,
                         " are reference units that do not match with value unit")
                  , unit_mismatches)
+  }
+
+  # check type of reference range
+  query <- glue_sql("
+      SELECT ref_type, count(*) as n
+      FROM {name_raw}
+      GROUP BY ref_type
+    ", .con = con)
+
+  reference_type <- dbGetQuery(con, query)
+
+  if (all(is.na(reference_type$ref_type))) {
+    writeLogData("No reference range type available")
+  } else {
+    writeLogData("Found reference types: ", reference_type)
   }
 
   # count values without unit
@@ -1080,7 +1131,7 @@ loadLab <- function(name, loincs, care_about_unit = TRUE) {
   # get final counts per result
   query <- glue_sql("
     SELECT
-      result, COUNT(*) AS n,
+      result, COUNT(*) AS n
     FROM {name}
     GROUP by result
   ", .con = con)
@@ -1120,16 +1171,21 @@ loadProcedures <- function() {
       ))
 
       #  icu profile has no performed datetime
-      performed_sql <- if (icu) {
-        glue_sql("NULL::TIMESTAMP", .con = con)
-      } else {
-        glue_sql("{`pro_performed`}::TIMESTAMP", .con = con)
-      }
 
-      types_clause <- getTypeClause(pro_period_start = "TIMESTAMP",
-                                   pro_period_end = "TIMESTAMP",
-                                   pro_sno_code = "VARCHAR",
-                                   pro_ops_code = "VARCHAR")
+      if (icu) {
+        types_clause <- getTypeClause(pro_period_start = "TIMESTAMP",
+                                      pro_period_end   = "TIMESTAMP",
+                                      pro_sno_code     = "VARCHAR",
+                                      pro_ops_code     = "VARCHAR")
+        performed_sql <- DBI::SQL("CAST(NULL AS TIMESTAMP)")
+      } else {
+        types_clause <- getTypeClause(pro_period_start = "TIMESTAMP",
+                                      pro_period_end   = "TIMESTAMP",
+                                      pro_performed    = "TIMESTAMP",
+                                      pro_sno_code     = "VARCHAR",
+                                      pro_ops_code     = "VARCHAR")
+        performed_sql <- glue_sql("{`pro_performed`}", .con = con)
+      }
 
       query <- glue_sql("
             CREATE OR REPLACE TEMP TABLE {name} AS
@@ -1150,6 +1206,11 @@ loadProcedures <- function() {
               OR NOT {`pro_status`} IN ('stopped', 'entered-in-error', 'on-hold', 'preparation', 'not-done'))
             AND (
               ({ops_conditions}) OR {`pro_sno_code`} IN ({dialyse_snomed*})
+            )
+            AND (
+              {performed_sql} BETWEEN {global_min_time} AND {global_max_time}
+              OR ( {`pro_period_start`} <= {global_max_time}
+                AND ({`pro_period_end`} IS NULL OR {`pro_period_end`} >= {global_min_time}))
             )
           ", .con = con)
 
@@ -1177,7 +1238,8 @@ loadProcedures <- function() {
       # we want to union with other procedures, so we need to name it like
       # a procedure
 
-      types_clause <- getTypeClause(obs_start = "TIMESTAMP", obs_end = "TIMESTAMP")
+      types_clause <- getTypeClause(obs_start = "TIMESTAMP", obs_end = "TIMESTAMP",
+                                    obs_time  = "TIMESTAMP")
       query <- glue_sql("
             CREATE OR REPLACE TEMP TABLE dauer_dialyse AS
             SELECT DISTINCT
@@ -1191,6 +1253,10 @@ loadProcedures <- function() {
             FROM read_csv_auto({path}, {csv_opts}, {types_clause}) pro
             WHERE ({`obs_status`} IS NULL
               OR NOT {`obs_status`} IN ('registered', 'preliminary', 'cancelled','entered-in-error'))
+            AND ( {`obs_time`} BETWEEN {global_min_time} AND {global_max_time}
+              OR ({`obs_start`} <= {global_max_time}
+                AND ({`obs_end`} IS NULL OR {`obs_end`} >= {global_min_time}))
+            )
           ", .con = con)
 
       count <- dbExecute(con, query)
@@ -1249,10 +1315,7 @@ loadProcedures <- function() {
       dbExecute(con, "
       CREATE OR REPLACE TEMP VIEW procedures_start AS
       SELECT *,
-         COALESCE(
-           CAST(performed    AS TIMESTAMPTZ),
-           CAST(period_start  AS TIMESTAMPTZ)
-         ) AS time
+         COALESCE(performed, period_start) AS time
       FROM procedures
       ")
 
@@ -1274,6 +1337,8 @@ loadConditions <- function() {
 
   path <- paste0(data_dir, "/", name_of_condition_csv)
 
+  types_clause <- getTypeClause(con_recorded = "TIMESTAMP")
+
   # status and verification NULL is possible because it is not required.
   query <- glue_sql("
             CREATE OR REPLACE TEMP TABLE conditions AS
@@ -1283,12 +1348,14 @@ loadConditions <- function() {
               {`con_recorded`} AS time,
               {`con_encounter`} AS encounter,
               {`con_icd`} AS icd
-            FROM read_csv_auto({path}, {csv_opts}) c
+            FROM read_csv_auto({path}, {csv_opts}, {types_clause}) c
             WHERE ({`con_status`} IS NULL
             OR NOT {`con_status`} IN ('inactive', 'remission'))
             AND   ({`con_veri`} IS NULL
             OR NOT {`con_veri`} IN ('unconfirmed','provisional','differential',
                                                   'refuted','entered-in-error'))
+            AND {`con_recorded`} >= {global_min_time}
+            AND {`con_recorded`} <= {global_max_time}
           ", .con = con)
 
   count <- dbExecute(con, query)

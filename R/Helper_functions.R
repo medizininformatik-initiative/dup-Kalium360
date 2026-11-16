@@ -243,13 +243,20 @@ getColumnExpr <- function(name_of_file, name_of_column, type_of_column) {
 
 # build a type_clause for duckdb with mixed types. Input is a list like
 # z.B. getTypeClause(code = "VARCHAR", ref = "DOUBLE")
-getTypeClause <- function(...) {
+getTypeClause <- function(..., csv_cols = NULL) {
 
   args <- list(...)
   var_names <- names(args)
 
   col_names <- sapply(var_names, function(n) get(n, envir = parent.frame()))
   col_types <- unlist(args)
+
+
+  if (!is.null(csv_cols)) {
+    keep <- col_names %in% csv_cols
+    col_names <- col_names[keep]
+    col_types <- col_types[keep]
+  }
 
   entries <- sprintf(
     "%s: '%s'",

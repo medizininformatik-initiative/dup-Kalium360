@@ -50,6 +50,9 @@ createTablesForPotassiumAnalysis <- function() {
   # key informations
   path <- paste0(data_dir, "/", name_of_lab_csv)
 
+  csv_cols <- dbGetQuery(con, glue_sql(
+    "DESCRIBE SELECT * FROM read_csv_auto({path}) LIMIT 0", .con = con))$column_name
+
   types_clause <- getTypeClause(obs_value_code = "VARCHAR",
                                 obs_method_code = "VARCHAR",
                                 obs_value = "DOUBLE",
@@ -57,7 +60,10 @@ createTablesForPotassiumAnalysis <- function() {
                                 obs_reference_low = "DOUBLE",
                                 obs_reference_high = "DOUBLE",
                                 obs_reference_high_unit = "VARCHAR",
-                                obs_reference_low_unit = "VARCHAR")
+                                obs_reference_low_unit = "VARCHAR",
+                                obs_time = "TIMESTAMP",
+                                obs_issued = "TIMESTAMP",
+                                csv_cols = csv_cols)
 
   query <- glue_sql("
         CREATE OR REPLACE TEMP TABLE potassium_data_raw AS
@@ -177,7 +183,6 @@ describeDataset <- function() {
   writeLogData("Observations with same observation.id: ", duplicate_ids)
 
   # get the distincts of interpretation an write counts to log
-
   query <- glue_sql("
       SELECT {`obs_loinc`}, {`obs_interpretation`}, count(distinct {`obs_id`})
       FROM potassium_data
@@ -186,9 +191,7 @@ describeDataset <- function() {
 
   count_interpretation <- dbGetQuery(con, query)
 
-
-  # Count distinct interpretations. This is to check if it matches with
-  # reference ranges and if we could get more detailed information
+  # Count distinct interpretations.
   writeLogData("Number of distint interpretations per LOINC: ",
                count_interpretation)
 
