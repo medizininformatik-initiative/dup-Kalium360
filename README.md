@@ -16,7 +16,7 @@ Kalium360 setzt auf eine Datenausleitung mit der DUP-Pipeline und anschließende
 > Conditions werden im Skript auf Encounter Ebene zu den Kaliumwerten gematched. 
 > Dadurch konnten bei Fällen die an den Rändern der Einschlussgrenzen Conditions 
 > gematched werden die außerhalb des Einschlusszeitraums liegen. 
-> Das Vorgehen passt zu der Beschreibung im Studienprotokoll, in der dazugehörigen 
+> Das Vorgehen passt zu der Beschreibung im Studienprotokoll. In der dazugehörigen 
 > Datendefinitions in Excel sind hingegen die festen Einschlusszeiträume für alle 
 > Ressourcen genannt.
 >
@@ -24,11 +24,13 @@ Kalium360 setzt auf eine Datenausleitung mit der DUP-Pipeline und anschließende
 > Daten konsequent auf den Einschlusszeitraum. Damit ist sichergestellt, dass keine
 > Ressourcen außerhalb des Zeitraums gematchet werden können. 
 >
-> Es ist nicht notwendig die Datenextraktion (DUP-Pipeline) nochmal auszuführen. 
+> Es ist nicht notwendig die Datenextraktion (DUP-Pipeline) noch einmal auszuführen. 
 > Das neue Skript über den alten DUP-output laufen zu lassen ist ausreichend. 
 >
-> Liegt der Extrakt der DUP-Pipeline nicht mehr vor können für eine erneute 
+> Liegt der Extrakt der DUP-Pipeline nicht mehr vor, können für eine erneute 
 > Extraktion die CRTDLs v2 genutzt werden. Dort werden direkt die Einschlusszeiträume berücksichtigt. 
+> 
+> Zusätzlich wurde mit der neuen Version ein Bug bei der Handhabung von Zeitzonen behoben. In der ursprünglichen Version wurde die Zeitzoneninformation nicht konsequent berücksichtigt.
 
 ## Fragebogen
 
