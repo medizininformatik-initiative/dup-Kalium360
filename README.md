@@ -8,6 +8,30 @@ werte beeinflussen können betrachtet.
 
 Kalium360 setzt auf eine Datenausleitung mit der DUP-Pipeline und anschließende dezentrale Analyse mit dem hier bereitgestelltem Skript. Es verlassen ausschließlich aggregierte Daten den Standort.
 
+> [!NOTE]
+> Zweite Datenausleitung
+>
+> In der ursprünglichen Version (v1.0.X) wurden die 
+> Zeitgrenzen in der CRTDL nicht konsequent gesetzt. Insbesondere bei den Conditions fehlt eine zeitliche Einschränkung.
+> Conditions werden im Skript auf Encounter Ebene zu den Kaliumwerten gematched. 
+> Dadurch konnten bei Fällen die an den Rändern der Einschlussgrenzen Conditions 
+> gematched werden die außerhalb des Einschlusszeitraums liegen. 
+> Das Vorgehen passt zu der Beschreibung im Studienprotokoll. In der dazugehörigen 
+> Datendefinitions in Excel sind hingegen die festen Einschlusszeiträume für alle 
+> Ressourcen genannt.
+>
+> Um das Problem zu beheben, filtert das neue Skript (v1.1.X) beim einlesen der 
+> Daten konsequent auf den Einschlusszeitraum. Damit ist sichergestellt, dass keine
+> Ressourcen außerhalb des Zeitraums gematchet werden können. 
+>
+> Es ist nicht notwendig die Datenextraktion (DUP-Pipeline) noch einmal auszuführen. 
+> Das neue Skript über den alten DUP-output laufen zu lassen ist ausreichend. 
+>
+> Liegt der Extrakt der DUP-Pipeline nicht mehr vor, können für eine erneute 
+> Extraktion die CRTDLs v2 genutzt werden. Dort werden direkt die Einschlusszeiträume berücksichtigt. 
+> 
+> Zusätzlich wurde mit der neuen Version ein Bug bei der Handhabung von Zeitzonen behoben. In der ursprünglichen Version wurde die Zeitzoneninformation nicht konsequent berücksichtigt.
+
 ## Fragebogen
 
 Der RedCap-Fragebogen sollte von jedem teilnehmenden Standort einmal ausgefüllt werden. Geben Sie dort ein selbst gewähltes Standort-Pseudonym an. Merken Sie sich ihr Pseudonym und geben sie es später bei der Datenausleitung mit an. Auf diese Weise können wir die Antworten mit den Daten zusammenführen.
